@@ -5,9 +5,7 @@
 # @author: wzy
 #
 import sys
-# import glob
 sys.path.append('gen-py')
-# sys.path.insert(0, glob.glob('../../lib/py/build/lib*')[0])
 
 from idv_ha import idv_ha
 from idv_ha.ttypes import DiskInfo, NetInfo, DrbdInfo
