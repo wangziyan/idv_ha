@@ -7,6 +7,8 @@
 
 # IDV HA Server监听端口
 SERVER_PORT = 9011
+# Thrift 超时时间
+THRIFT_TIMEOUT = 30000
 
 # IDV HA日志配置
 AVDS_LOG_PATH = "/thinputer/log/"

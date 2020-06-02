@@ -8,7 +8,6 @@ import os
 import sys
 import signal
 sys.path.append('gen-py')
-# sys.path.insert(0, glob.glob('../../lib/py/build/lib*')[0])
 
 from idv_ha import idv_ha
 from idv_ha.ttypes import DiskInfo, NetInfo, DrbdInfo
@@ -24,14 +23,14 @@ from log import logger
 
 class ProcessHandler:
     def __init__(self):
-        self.log = {}
+        pass
 
     def drbd_health_check(self):
-        print("server recv drbd health check")
+        logger.info("server recv drbd health check")
         return 0
 
     def idv_ha_prepared(self, disks):
-        print("server recv idv ha prepared")
+        logger.info("server recv idv ha prepared")
         result = {}
 
         for disc in disks:
@@ -42,6 +41,16 @@ class ProcessHandler:
             result[disc.storage_name] = True
 
         return result
+
+    def switch_master(self):
+        logger.info("server recv switch master")
+        print("server recv switch master")
+        return 0
+
+    def switch_backup(self):
+        logger.info("server recv switch backup")
+        print("server recv switch backup")
+        return 1
 
 
 def handle_exit(signum, frame):

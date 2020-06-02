@@ -45,6 +45,8 @@ service idv_ha{
     i32 drbd_health_check()
     // idv服务监测
     i32 idv_service_check()
+    // 网络健康检测
+    i32 net_health_check()
 
     // 切换为主节点
     i32 switch_master()
