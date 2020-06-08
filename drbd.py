@@ -14,11 +14,13 @@ from log import logger
 class Drbd(object):
     def __init__(self):
         self.__queue = Queue()
-        self.__lock = Lock()
         self.__task_run = False
         self.start()
 
     def __run(self):
+        """
+        we only exec the latest work
+        """
         while True:
             work = None
             while True:
@@ -26,7 +28,7 @@ class Drbd(object):
                 if self.__queue.empty():
                     break
                 self.__queue.task_done()
-                logger.info("drop " + work.__name__)
+                logger.info("multi task drop " + work.__name__)
             self.__task_run = True
             work()
             self.__task_run = False
@@ -45,15 +47,13 @@ class Drbd(object):
         print("do nothing")
 
     def switch_master(self):
-        # with self.__lock:
         self.__queue.put(self.__switch_master)
+        logger.info("put item into queue")
 
     def switch_backup(self):
-        # with self.__lock:
         self.__queue.put(self.__switch_backup)
 
     def switch_falut(self):
-        # with self.__lock:
         self.__queue.put(self.__switch_fault)
 
     def start(self):
