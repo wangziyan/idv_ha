@@ -46,3 +46,19 @@ def is_master_node():
     else:
         logger.error("file %s is not exist" % IDV_HA_CONF)
     return res
+
+def get_keepalived_conf():
+    conf = {}
+    if is_file_exist(IDV_HA_CONF):
+        try:
+            with open(IDV_HA_CONF, "r") as j_file:
+                data = json.load(j_file)
+                conf["state"] = data.get("keepalived").get("state", "")
+                conf["router_id"] = data.get("keepalived").get("router_id", 10)
+                conf["virtual_ip"] = data.get("keepalived").get("virtual_ip", "")
+                conf["interface"] = data.get("keepalived").get("interface", "")
+                logger.info("read keepalived conf state:%s router_id:%d virtual_ip:%s interface:%s",
+                            conf["state"], conf["router_id"], conf["virtual_ip"], conf["interface"])
+        except Exception as e:
+            logger.error("server get_keepalived_conf error: %s" % e)
+    return conf

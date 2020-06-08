@@ -5,9 +5,10 @@
 # @author: wzy
 #
 from Queue import Queue
-from threading import Thread, Lock
+from threading import Thread
 
 from common import singleton
+from utility import get_keepalived_conf
 from log import logger
 
 @singleton
@@ -15,6 +16,7 @@ class Drbd(object):
     def __init__(self):
         self.__queue = Queue()
         self.__task_run = False
+        self.read_keepalived()
         self.start()
 
     def __run(self):
@@ -48,7 +50,6 @@ class Drbd(object):
 
     def switch_master(self):
         self.__queue.put(self.__switch_master)
-        logger.info("put item into queue")
 
     def switch_backup(self):
         self.__queue.put(self.__switch_backup)
@@ -61,5 +62,12 @@ class Drbd(object):
             thread = Thread(target=self.__run)
             thread.setDaemon(True)
             thread.start()
-        except Exception as ex:
-            logger.error(ex.message)
+        except Exception as e:
+            logger.error(e.message)
+
+    def read_keepalived(self):
+        keepavlied_conf = get_keepalived_conf()
+        self.__ka_state = keepavlied_conf.get("state")
+        self.__router_id = keepavlied_conf.get("router_id")
+        self.__virtual_ip = keepavlied_conf.get("virtual_ip")
+        self.__interface = keepavlied_conf.get("interface")
