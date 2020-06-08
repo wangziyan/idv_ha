@@ -49,9 +49,9 @@ service idv_ha{
     i32 net_health_check()
 
     // 切换为主节点
-    i32 switch_master()
+    void switch_master()
     // 切换为备节点
-    i32 switch_backup()
+    void switch_backup()
     // 切换错误状态
-    i32 switch_faults()
+    void switch_faults()
 }

@@ -45,16 +45,16 @@ class Drbd(object):
         print("do nothing")
 
     def switch_master(self):
-        with self.__lock:
-            self.__queue.put(self.__switch_master)
+        # with self.__lock:
+        self.__queue.put(self.__switch_master)
 
     def switch_backup(self):
-        with self.__lock:
-            self.__queue.put(self.__switch_backup)
+        # with self.__lock:
+        self.__queue.put(self.__switch_backup)
 
     def switch_falut(self):
-        with self.__lock:
-            self.__queue.put(self.__switch_fault)
+        # with self.__lock:
+        self.__queue.put(self.__switch_fault)
 
     def start(self):
         try:

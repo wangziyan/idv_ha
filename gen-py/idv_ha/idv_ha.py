@@ -56,6 +56,9 @@ class Iface:
   def idv_service_check(self):
     pass
 
+  def net_health_check(self):
+    pass
+
   def switch_master(self):
     pass
 
@@ -270,9 +273,34 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "idv_service_check failed: unknown result");
 
+  def net_health_check(self):
+    self.send_net_health_check()
+    return self.recv_net_health_check()
+
+  def send_net_health_check(self):
+    self._oprot.writeMessageBegin('net_health_check', TMessageType.CALL, self._seqid)
+    args = net_health_check_args()
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_net_health_check(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = net_health_check_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "net_health_check failed: unknown result");
+
   def switch_master(self):
     self.send_switch_master()
-    return self.recv_switch_master()
+    self.recv_switch_master()
 
   def send_switch_master(self):
     self._oprot.writeMessageBegin('switch_master', TMessageType.CALL, self._seqid)
@@ -291,13 +319,11 @@ class Client(Iface):
     result = switch_master_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
-    if result.success is not None:
-      return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "switch_master failed: unknown result");
+    return
 
   def switch_backup(self):
     self.send_switch_backup()
-    return self.recv_switch_backup()
+    self.recv_switch_backup()
 
   def send_switch_backup(self):
     self._oprot.writeMessageBegin('switch_backup', TMessageType.CALL, self._seqid)
@@ -316,13 +342,11 @@ class Client(Iface):
     result = switch_backup_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
-    if result.success is not None:
-      return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "switch_backup failed: unknown result");
+    return
 
   def switch_faults(self):
     self.send_switch_faults()
-    return self.recv_switch_faults()
+    self.recv_switch_faults()
 
   def send_switch_faults(self):
     self._oprot.writeMessageBegin('switch_faults', TMessageType.CALL, self._seqid)
@@ -341,9 +365,7 @@ class Client(Iface):
     result = switch_faults_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
-    if result.success is not None:
-      return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "switch_faults failed: unknown result");
+    return
 
 
 class Processor(Iface, TProcessor):
@@ -357,6 +379,7 @@ class Processor(Iface, TProcessor):
     self._processMap["report_disk_error_info"] = Processor.process_report_disk_error_info
     self._processMap["drbd_health_check"] = Processor.process_drbd_health_check
     self._processMap["idv_service_check"] = Processor.process_idv_service_check
+    self._processMap["net_health_check"] = Processor.process_net_health_check
     self._processMap["switch_master"] = Processor.process_switch_master
     self._processMap["switch_backup"] = Processor.process_switch_backup
     self._processMap["switch_faults"] = Processor.process_switch_faults
@@ -453,12 +476,23 @@ class Processor(Iface, TProcessor):
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
+  def process_net_health_check(self, seqid, iprot, oprot):
+    args = net_health_check_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = net_health_check_result()
+    result.success = self._handler.net_health_check()
+    oprot.writeMessageBegin("net_health_check", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
   def process_switch_master(self, seqid, iprot, oprot):
     args = switch_master_args()
     args.read(iprot)
     iprot.readMessageEnd()
     result = switch_master_result()
-    result.success = self._handler.switch_master()
+    self._handler.switch_master()
     oprot.writeMessageBegin("switch_master", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -469,7 +503,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = switch_backup_result()
-    result.success = self._handler.switch_backup()
+    self._handler.switch_backup()
     oprot.writeMessageBegin("switch_backup", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -480,7 +514,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = switch_faults_result()
-    result.success = self._handler.switch_faults()
+    self._handler.switch_faults()
     oprot.writeMessageBegin("switch_faults", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -1311,6 +1345,107 @@ class idv_service_check_result:
   def __ne__(self, other):
     return not (self == other)
 
+class net_health_check_args:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('net_health_check_args')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class net_health_check_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.I32, 'success', None, None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.I32:
+          self.success = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('net_health_check_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.I32, 0)
+      oprot.writeI32(self.success)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class switch_master_args:
 
   thrift_spec = (
@@ -1354,17 +1489,9 @@ class switch_master_args:
     return not (self == other)
 
 class switch_master_result:
-  """
-  Attributes:
-   - success
-  """
 
   thrift_spec = (
-    (0, TType.I32, 'success', None, None, ), # 0
   )
-
-  def __init__(self, success=None,):
-    self.success = success
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1375,11 +1502,6 @@ class switch_master_result:
       (fname, ftype, fid) = iprot.readFieldBegin()
       if ftype == TType.STOP:
         break
-      if fid == 0:
-        if ftype == TType.I32:
-          self.success = iprot.readI32();
-        else:
-          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1390,10 +1512,6 @@ class switch_master_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('switch_master_result')
-    if self.success is not None:
-      oprot.writeFieldBegin('success', TType.I32, 0)
-      oprot.writeI32(self.success)
-      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -1455,17 +1573,9 @@ class switch_backup_args:
     return not (self == other)
 
 class switch_backup_result:
-  """
-  Attributes:
-   - success
-  """
 
   thrift_spec = (
-    (0, TType.I32, 'success', None, None, ), # 0
   )
-
-  def __init__(self, success=None,):
-    self.success = success
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1476,11 +1586,6 @@ class switch_backup_result:
       (fname, ftype, fid) = iprot.readFieldBegin()
       if ftype == TType.STOP:
         break
-      if fid == 0:
-        if ftype == TType.I32:
-          self.success = iprot.readI32();
-        else:
-          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1491,10 +1596,6 @@ class switch_backup_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('switch_backup_result')
-    if self.success is not None:
-      oprot.writeFieldBegin('success', TType.I32, 0)
-      oprot.writeI32(self.success)
-      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -1556,17 +1657,9 @@ class switch_faults_args:
     return not (self == other)
 
 class switch_faults_result:
-  """
-  Attributes:
-   - success
-  """
 
   thrift_spec = (
-    (0, TType.I32, 'success', None, None, ), # 0
   )
-
-  def __init__(self, success=None,):
-    self.success = success
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1577,11 +1670,6 @@ class switch_faults_result:
       (fname, ftype, fid) = iprot.readFieldBegin()
       if ftype == TType.STOP:
         break
-      if fid == 0:
-        if ftype == TType.I32:
-          self.success = iprot.readI32();
-        else:
-          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1592,10 +1680,6 @@ class switch_faults_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('switch_faults_result')
-    if self.success is not None:
-      oprot.writeFieldBegin('success', TType.I32, 0)
-      oprot.writeI32(self.success)
-      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 

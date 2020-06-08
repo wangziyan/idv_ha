@@ -30,9 +30,10 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  i32 report_disk_error_info( disk)'
   print '  i32 drbd_health_check()'
   print '  i32 idv_service_check()'
-  print '  i32 switch_master()'
-  print '  i32 switch_backup()'
-  print '  i32 switch_faults()'
+  print '  i32 net_health_check()'
+  print '  void switch_master()'
+  print '  void switch_backup()'
+  print '  void switch_faults()'
   print ''
   sys.exit(0)
 
@@ -125,6 +126,12 @@ elif cmd == 'idv_service_check':
     print 'idv_service_check requires 0 args'
     sys.exit(1)
   pp.pprint(client.idv_service_check())
+
+elif cmd == 'net_health_check':
+  if len(args) != 0:
+    print 'net_health_check requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.net_health_check())
 
 elif cmd == 'switch_master':
   if len(args) != 0:
