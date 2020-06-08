@@ -4,16 +4,19 @@
 #
 # @author: wzy
 #
+from drbd import Drbd
 from log import logger
 
 class ProcessHandler(object):
     def __init__(self):
-        pass
+        self.__drbd = Drbd()
 
+    # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):
         logger.info("server recv drbd health check")
         return 0
 
+    # TODO(wzy): 检测是否具备开启idv ha的条件
     def idv_ha_prepared(self, disks):
         logger.info("server recv idv ha prepared")
         result = {}
@@ -31,10 +34,10 @@ class ProcessHandler(object):
     def switch_master(self):
         logger.info("server recv switch master")
         print("server recv switch master")
-        return 0
+        self.__drbd.switch_master()
 
     # TODO(wzy): 切换为备节点
     def switch_backup(self):
         logger.info("server recv switch backup")
         print("server recv switch backup")
-        return 1
+        self.__drbd.switch_backup()
