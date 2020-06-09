@@ -73,7 +73,7 @@ class Drbd(object):
             self.__virtual_ip = keepavlied_conf.get("virtual_ip")
             self.__interface = keepavlied_conf.get("interface")
         else:
-            print("no keepalvied conf")
+            logger.warning("no keepalvied conf")
 
     def __check_ha_cluster_state(self):
         pass
