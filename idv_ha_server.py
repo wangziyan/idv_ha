@@ -20,23 +20,20 @@ from thrift.server import TServer
 from idv_ha import idv_ha
 
 from constant import SERVER_PORT
-from tools import get_system_uptime
+from tools import get_system_uptime, shell_cmd
 from utility import enable_idv_ha
 from ha_handler import ProcessHandler
 from log import logger
 
-def start_services():
+def start_service():
     uptime = get_system_uptime()
     if uptime < 120:
         sleep(120)
     sleep(5)
-    logger.info("start service drbd......")
-    ret = sub_call("systemctl start drbd", close_fds=True, shell=True)
-    if ret != 0:
-        logger.error("start service drbd failed")
-        return
+
     logger.info("start service keepalived......")
-    ret = sub_call("systemctl start keepalived", close_fds=True, shell=True)
+    cmd = "systemctl start keepalived"
+    ret = shell_cmd(cmd)
     if ret != 0:
         logger.error("start service keepalived failed")
 
@@ -67,7 +64,7 @@ class HAServer(object):
             # TODO(wzy): 开机的时候如果没有启用idv ha，就不会启动服务，如果后面需要开启idv ha 需要重新启动服务?
             if enable_idv_ha():
                 logger.info("server idv ha is enable")
-                services = Thread(target=start_services)
+                services = Thread(target=start_service)
                 services.setDaemon(True)
                 services.start()
             else:
