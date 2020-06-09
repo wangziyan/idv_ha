@@ -7,7 +7,7 @@
 import os
 import json
 
-from constant import IDV_HA_CONF, IDV_HA_CONF_PATH
+from constant import IDV_HA_CONF, IDV_HA_CONF_PATH, DRBD_CONF
 from log import logger
 
 def is_file_exist(filename):
@@ -48,7 +48,7 @@ def is_master_node():
     return res
 
 def get_keepalived_conf():
-    conf = {}
+    conf = None
     if is_file_exist(IDV_HA_CONF):
         try:
             with open(IDV_HA_CONF, "r") as j_file:
@@ -61,4 +61,14 @@ def get_keepalived_conf():
                             conf["state"], conf["router_id"], conf["virtual_ip"], conf["interface"])
         except Exception as e:
             logger.error("server get_keepalived_conf error: %s" % e)
+    return conf
+
+def get_drbd_conf():
+    conf = None
+    if is_file_exist(DRBD_CONF):
+        try:
+            with open(DRBD_CONF, "r") as j_file:
+                conf = json.load(j_file)
+        except Exception as e:
+            logger.error("server get_drbd_conf error:%s" % e)
     return conf

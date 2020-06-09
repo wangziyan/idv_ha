@@ -4,12 +4,21 @@
 #
 # @author: wzy
 #
+from threading import Thread
 from drbd import Drbd
+from drbd_mgr import DrbdManager
 from log import logger
 
 class ProcessHandler(object):
     def __init__(self):
         self.__drbd = Drbd()
+        self.__drbd_mgr = DrbdManager()
+
+        t = Thread(target=self.prepare)
+        t.start()
+
+    def prepare(self):
+        self.__drbd_mgr.prepare()
 
     # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):

@@ -64,6 +64,7 @@ class HAServer(object):
         server.setNumThreads(15)
 
         try:
+            # TODO(wzy): 开机的时候如果没有启用idv ha，就不会启动服务，如果后面需要开启idv ha 需要重新启动服务?
             if enable_idv_ha():
                 logger.info("server idv ha is enable")
                 services = Thread(target=start_services)

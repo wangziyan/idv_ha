@@ -67,7 +67,20 @@ class Drbd(object):
 
     def read_keepalived(self):
         keepavlied_conf = get_keepalived_conf()
-        self.__ka_state = keepavlied_conf.get("state")
-        self.__router_id = keepavlied_conf.get("router_id")
-        self.__virtual_ip = keepavlied_conf.get("virtual_ip")
-        self.__interface = keepavlied_conf.get("interface")
+        if keepavlied_conf:
+            self.__ka_state = keepavlied_conf.get("state")
+            self.__router_id = keepavlied_conf.get("router_id")
+            self.__virtual_ip = keepavlied_conf.get("virtual_ip")
+            self.__interface = keepavlied_conf.get("interface")
+        else:
+            print("no keepalvied conf")
+
+    def __check_ha_cluster_state(self):
+        pass
+
+    def _check_state_of_idv_ha(self):
+        try:
+            thread = Thread(target=self.__check_ha_cluster_state)
+            thread.start()
+        except Exception as e:
+            logger.exception(e.message)

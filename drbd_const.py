@@ -31,3 +31,11 @@ class DrbdCopyState(object):
     established = "Established"
     sync_source = "SyncSource"
     sync_target = "SyncTarget"
+
+class DrbdRole(object):
+    primary = "Primary"
+    secondary = "Secondary"
+    unknown = "Unknown"
+    error = "Error"
+    primary_no_secondary = "Primary/Unknown"
+    secondary_no_primary = "Secondary/Unknown"
