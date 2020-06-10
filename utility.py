@@ -75,3 +75,11 @@ def get_drbd_conf():
         except Exception as e:
             logger.error("server get_drbd_conf error:%s" % e)
     return conf
+
+def save_conf(filename, data):
+    if is_file_exist(filename):
+        try:
+            with open(filename, "w") as j_file:
+                json.dump(data, j_file, indent=4)
+        except Exception as e:
+            logger.error("server save_conf error:%s" % e)
