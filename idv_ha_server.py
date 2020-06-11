@@ -21,13 +21,14 @@ from idv_ha import idv_ha
 
 from constant import SERVER_PORT
 from tools import get_system_uptime, shell_cmd
-from utility import enable_idv_ha
+from utility import enable_idv_ha, is_master_node
 from ha_handler import ProcessHandler
 from log import logger
 
 def start_service():
     uptime = get_system_uptime()
-    if uptime < 120:
+    # 如果不是主节点，keepalived启动时间推迟
+    if not is_master_node() and uptime < 120:
         sleep(120)
     sleep(5)
 

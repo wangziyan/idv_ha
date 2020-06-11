@@ -108,12 +108,12 @@ class DrbdManager(object):
 
             self.start_service()
 
-            # TODO(wzy): 这里是否需要考虑脑裂的情况？完全依赖配置文件会不会有问题？
+            # TODO(wzy): 这里是否需要考虑脑裂的情况？完全依赖配置文件会不会有问题？会有问题的
             if is_master_node():  # master node mount dir
                 self.primary_all_resources()
                 self.mount_dir()
 
-            self.save_drbd_conf()
+            self.save_drbd_conf()  # 是不是也是多余的操作
             self.drbd_prepare_ready = True
             logger.info("drbd is prepared")
         else:
