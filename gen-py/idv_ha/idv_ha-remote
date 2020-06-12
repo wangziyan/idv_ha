@@ -24,6 +24,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print ''
   print 'Functions:'
   print '   idv_ha_prepared( disk)'
+  print '  bool idv_ha_created_with_others(string ip1, string ip2)'
   print '  i32 setup_idv_ha(NetInfo net, DrbdInfo drbd)'
   print '  i32 amend_idv_ha(NetInfo net)'
   print '  i32 remove_idv_ha()'
@@ -90,6 +91,12 @@ if cmd == 'idv_ha_prepared':
     print 'idv_ha_prepared requires 1 args'
     sys.exit(1)
   pp.pprint(client.idv_ha_prepared(eval(args[0]),))
+
+elif cmd == 'idv_ha_created_with_others':
+  if len(args) != 2:
+    print 'idv_ha_created_with_others requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.idv_ha_created_with_others(args[0],args[1],))
 
 elif cmd == 'setup_idv_ha':
   if len(args) != 2:

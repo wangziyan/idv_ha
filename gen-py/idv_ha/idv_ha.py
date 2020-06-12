@@ -25,6 +25,14 @@ class Iface:
     """
     pass
 
+  def idv_ha_created_with_others(self, ip1, ip2):
+    """
+    Parameters:
+     - ip1
+     - ip2
+    """
+    pass
+
   def setup_idv_ha(self, net, drbd):
     """
     Parameters:
@@ -105,6 +113,38 @@ class Client(Iface):
     if result.success is not None:
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "idv_ha_prepared failed: unknown result");
+
+  def idv_ha_created_with_others(self, ip1, ip2):
+    """
+    Parameters:
+     - ip1
+     - ip2
+    """
+    self.send_idv_ha_created_with_others(ip1, ip2)
+    return self.recv_idv_ha_created_with_others()
+
+  def send_idv_ha_created_with_others(self, ip1, ip2):
+    self._oprot.writeMessageBegin('idv_ha_created_with_others', TMessageType.CALL, self._seqid)
+    args = idv_ha_created_with_others_args()
+    args.ip1 = ip1
+    args.ip2 = ip2
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_idv_ha_created_with_others(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = idv_ha_created_with_others_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "idv_ha_created_with_others failed: unknown result");
 
   def setup_idv_ha(self, net, drbd):
     """
@@ -373,6 +413,7 @@ class Processor(Iface, TProcessor):
     self._handler = handler
     self._processMap = {}
     self._processMap["idv_ha_prepared"] = Processor.process_idv_ha_prepared
+    self._processMap["idv_ha_created_with_others"] = Processor.process_idv_ha_created_with_others
     self._processMap["setup_idv_ha"] = Processor.process_setup_idv_ha
     self._processMap["amend_idv_ha"] = Processor.process_amend_idv_ha
     self._processMap["remove_idv_ha"] = Processor.process_remove_idv_ha
@@ -406,6 +447,17 @@ class Processor(Iface, TProcessor):
     result = idv_ha_prepared_result()
     result.success = self._handler.idv_ha_prepared(args.disk)
     oprot.writeMessageBegin("idv_ha_prepared", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_idv_ha_created_with_others(self, seqid, iprot, oprot):
+    args = idv_ha_created_with_others_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = idv_ha_created_with_others_result()
+    result.success = self._handler.idv_ha_created_with_others(args.ip1, args.ip2)
+    oprot.writeMessageBegin("idv_ha_created_with_others", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -599,7 +651,7 @@ class idv_ha_prepared_result:
   """
 
   thrift_spec = (
-    (0, TType.MAP, 'success', (TType.STRING,None,TType.BOOL,None), None, ), # 0
+    (0, TType.MAP, 'success', (TType.STRING,None,TType.I32,None), None, ), # 0
   )
 
   def __init__(self, success=None,):
@@ -620,7 +672,7 @@ class idv_ha_prepared_result:
           (_ktype8, _vtype9, _size7 ) = iprot.readMapBegin()
           for _i11 in xrange(_size7):
             _key12 = iprot.readString();
-            _val13 = iprot.readBool();
+            _val13 = iprot.readI32();
             self.success[_key12] = _val13
           iprot.readMapEnd()
         else:
@@ -637,11 +689,142 @@ class idv_ha_prepared_result:
     oprot.writeStructBegin('idv_ha_prepared_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.MAP, 0)
-      oprot.writeMapBegin(TType.STRING, TType.BOOL, len(self.success))
+      oprot.writeMapBegin(TType.STRING, TType.I32, len(self.success))
       for kiter14,viter15 in self.success.items():
         oprot.writeString(kiter14)
-        oprot.writeBool(viter15)
+        oprot.writeI32(viter15)
       oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class idv_ha_created_with_others_args:
+  """
+  Attributes:
+   - ip1
+   - ip2
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'ip1', None, None, ), # 1
+    (2, TType.STRING, 'ip2', None, None, ), # 2
+  )
+
+  def __init__(self, ip1=None, ip2=None,):
+    self.ip1 = ip1
+    self.ip2 = ip2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.ip1 = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.ip2 = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('idv_ha_created_with_others_args')
+    if self.ip1 is not None:
+      oprot.writeFieldBegin('ip1', TType.STRING, 1)
+      oprot.writeString(self.ip1)
+      oprot.writeFieldEnd()
+    if self.ip2 is not None:
+      oprot.writeFieldBegin('ip2', TType.STRING, 2)
+      oprot.writeString(self.ip2)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class idv_ha_created_with_others_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.BOOL:
+          self.success = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('idv_ha_created_with_others_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.BOOL, 0)
+      oprot.writeBool(self.success)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

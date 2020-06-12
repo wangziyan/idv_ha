@@ -23,7 +23,7 @@ from constant import SERVER_PORT, THRIFT_TIMEOUT
 from log import logger
 
 def get_client(host="localhost", port=SERVER_PORT, timeout=THRIFT_TIMEOUT):
-    transport = TSocket.TSocket(host, port) 
+    transport = TSocket.TSocket(host, port)
     transport.setTimeout(timeout)
     transport = TTransport.TBufferedTransport(transport)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)

@@ -4,6 +4,7 @@
 #
 # @author: wzy
 #
+
 import os
 from time import sleep
 from common import singleton
@@ -11,7 +12,7 @@ from constant import DRBD_CONF
 from drbd_const import DrbdState, DrbdConnState, DrbdDiskState
 from log import logger
 from tools import shell_cmd
-from utility import enable_idv_ha, get_drbd_conf, is_master_node, save_conf
+from utility import is_idv_ha_enabled, get_drbd_conf, is_master_node, save_conf
 
 class Drbd(object):
     def __init__(self, resource_num, resource_conf):
@@ -88,7 +89,7 @@ class DrbdManager(object):
         self.in_update_time = 0
 
     def prepare(self):
-        if enable_idv_ha():
+        if is_idv_ha_enabled():
             logger.info("begin drbd preparation")
             drbd_conf = get_drbd_conf()
 
@@ -115,7 +116,7 @@ class DrbdManager(object):
 
             self.save_drbd_conf()  # 是不是也是多余的操作
             self.drbd_prepare_ready = True
-            logger.info("drbd is prepared")
+            logger.info("idv ha drbd is prepared")
         else:
             logger.info("idv ha disabled, so drbd will not prepare")
 
@@ -194,3 +195,14 @@ class DrbdManager(object):
             drbd_conf[res_num]["status"] = drbd.status
 
         save_conf(DRBD_CONF, drbd_conf)
+
+    def have_drbd_with_others(self, ip1, ip2):
+        # 判断是否已经与其他节点建立了IDV_HA
+        if not is_idv_ha_enabled():
+            return False
+
+        for drbd in self.drbd_lists:
+            if ip1 == drbd.primary_addr and ip2 == drbd.secondary_addr:
+                return False
+
+        return True

@@ -24,6 +24,7 @@ class DiskInfo:
    - volume_name
    - size
    - type
+   - content
   """
 
   thrift_spec = (
@@ -32,13 +33,15 @@ class DiskInfo:
     (2, TType.STRING, 'volume_name', None, None, ), # 2
     (3, TType.I32, 'size', None, None, ), # 3
     (4, TType.STRING, 'type', None, None, ), # 4
+    (5, TType.STRING, 'content', None, None, ), # 5
   )
 
-  def __init__(self, storage_name=None, volume_name=None, size=None, type=None,):
+  def __init__(self, storage_name=None, volume_name=None, size=None, type=None, content=None,):
     self.storage_name = storage_name
     self.volume_name = volume_name
     self.size = size
     self.type = type
+    self.content = content
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -69,6 +72,11 @@ class DiskInfo:
           self.type = iprot.readString();
         else:
           iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.content = iprot.readString();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -94,6 +102,10 @@ class DiskInfo:
     if self.type is not None:
       oprot.writeFieldBegin('type', TType.STRING, 4)
       oprot.writeString(self.type)
+      oprot.writeFieldEnd()
+    if self.content is not None:
+      oprot.writeFieldBegin('content', TType.STRING, 5)
+      oprot.writeString(self.content)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

@@ -4,6 +4,7 @@
 #
 # @author: wzy
 #
+
 import os
 import json
 
@@ -19,7 +20,7 @@ def is_file_exist(filename):
         logger.info("%s is not exist" % filename)
         return False
 
-def enable_idv_ha():
+def is_idv_ha_enabled():
     res = False
     if is_file_exist(IDV_HA_CONF):
         try:
@@ -29,7 +30,7 @@ def enable_idv_ha():
                 if enabled == "true":
                     res = True
         except Exception as e:
-            logger.error("server enable_idv_ha error: %s" % e)
+            logger.error("server is_idv_ha_enabled error: %s" % e)
     return res
 
 def is_master_node():

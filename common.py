@@ -5,7 +5,6 @@
 # @author: wzy
 #
 
-
 def singleton(cls):
     instances = {}
 

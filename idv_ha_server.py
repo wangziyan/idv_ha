@@ -21,7 +21,7 @@ from idv_ha import idv_ha
 
 from constant import SERVER_PORT
 from tools import get_system_uptime, shell_cmd
-from utility import enable_idv_ha, is_master_node
+from utility import is_idv_ha_enabled, is_master_node
 from ha_handler import ProcessHandler
 from log import logger
 
@@ -63,7 +63,7 @@ class HAServer(object):
 
         try:
             # TODO(wzy): 开机的时候如果没有启用idv ha，就不会启动服务，如果后面需要开启idv ha 需要重新启动服务?
-            if enable_idv_ha():
+            if is_idv_ha_enabled():
                 logger.info("server idv ha is enable")
                 services = Thread(target=start_service)
                 services.setDaemon(True)

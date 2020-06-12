@@ -3,7 +3,8 @@ struct DiskInfo{
     1:string storage_name;  // 存储池名称
     2:string volume_name;   // 块设备名称
     3:i32 size;             // 磁盘大小
-    4:string type;          // 磁盘类型
+    4:string type;          // 磁盘类型(是否为lvm)
+    5:string content;       // 磁盘内容的类型(ISO镜像,VDI模板,VDI镜像,IDV镜像,备份文件)
 }
 
 // 网络信息
@@ -28,8 +29,10 @@ struct NodeInfo{
 }
 
 service idv_ha{
-    // 对端是否具备建立idv高可用的条件
-    map<string, bool> idv_ha_prepared(1:list<DiskInfo> disk)
+    // 对端是否具备建立IDV_HA的条件
+    map<string, i32> idv_ha_prepared(1:list<DiskInfo> disk)
+    // 对端是否已经与其他节点建立了IDV_HA
+    bool idv_ha_created_with_others(1:string ip1, 2:string ip2)
 
     // 建立idv高可用服务
     i32 setup_idv_ha(1:NetInfo net, 2:DrbdInfo drbd)

@@ -4,6 +4,7 @@
 #
 # @author: wzy
 #
+
 class DrbdState(object):
     SUCCESS = 0
     INIT_FAILED = 1
