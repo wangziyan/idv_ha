@@ -35,7 +35,6 @@ class Drbd(object):
         self.progress = "0%"
 
         # 初始化有两种情况，开机读取配置文件以及新建立IDV_HA的DRBD对象
-        # TODO(wzy): back device命名是如何确认的
         if not resource_conf:
             self.back_device = resource_conf.get("drbd_back_device", "/dev/mapper/vg_drbd-%s" % (self.res_num))
             self.drbd_dev = resource_conf.get("drbd_dev", "/dev/drbd%s" % (self.res_num))
@@ -151,17 +150,13 @@ class Drbd(object):
 
         ret, output = shell_cmd(cmd, need_out=True)
 
+        # TODO(wzy): 创建元数据前清除了文件系统，所以还会出现哪些创建失败的情况不清楚
         if ret != 0:
             self.status = DrbdState.INIT_FAILED
             logger.error("drbd create meta data failed: %s" % output)
-            for line in output.split("\n"):
-                if line.strip() == "* zero out the device (destroy the filesystem)":
-                    print("wipefs!!!")
-                    block_dev = "/dev/mapper/vg_drbd-wzy"
-                    cmd_wipefs = "wipefs -a %s" % block_dev
-                    shell_cmd(cmd_wipefs)
-                    break
-            # TODO(wzy): 创建元数据失败的情况要处理——擦除文件系统
+        else:
+            self.status = DrbdState.SUCCESS
+            logger.info("drbd create meta data success")
 
     def wipe_fs(self):
         cmd = "wipefs -a %s" % self.back_device
