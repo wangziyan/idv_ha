@@ -35,6 +35,7 @@ class Drbd(object):
         self.progress = "0%"
 
         # 初始化有两种情况，开机读取配置文件以及新建立IDV_HA的DRBD对象
+        # TODO(wzy): back device命名是如何确认的
         if not resource_conf:
             self.back_device = resource_conf.get("drbd_back_device", "/dev/mapper/vg_drbd-%s" % (self.res_num))
             self.drbd_dev = resource_conf.get("drbd_dev", "/dev/drbd%s" % (self.res_num))
@@ -44,7 +45,7 @@ class Drbd(object):
             self.storage_dir = resource_conf.get("storage_dir", "")
             self.status = resource_conf.get("status", 0)
         else:
-            self.back_device = "/dev/mapper/vg_drbd-%s" % (self.res_num)
+            self.back_device = None
             self.drbd_dev = "/dev/drbd%s" % (self.res_num)
             self.port = str(7789 + int(self.res_num))
             self.res_name = "r%s" % (self.res_num)
@@ -69,6 +70,7 @@ class Drbd(object):
         self.secondary_host = drbd_info.secondary_host
         self.is_primary = is_primary
         self.port = str(drbd_info.port)
+        self.back_device = drbd_info.block_dev
 
     def back_device_exist(self):
         return True if os.path.exists(self.back_device) else False
@@ -152,12 +154,19 @@ class Drbd(object):
         if ret != 0:
             self.status = DrbdState.INIT_FAILED
             logger.error("drbd create meta data failed: %s" % output)
+            for line in output.split("\n"):
+                if line.strip() == "* zero out the device (destroy the filesystem)":
+                    print("wipefs!!!")
+                    block_dev = "/dev/mapper/vg_drbd-wzy"
+                    cmd_wipefs = "wipefs -a %s" % block_dev
+                    shell_cmd(cmd_wipefs)
+                    break
             # TODO(wzy): 创建元数据失败的情况要处理——擦除文件系统
 
-    def wipe_fs(self, block_dev):
-        cmd = "wipefs -a %s" % block_dev
+    def wipe_fs(self):
+        cmd = "wipefs -a %s" % self.back_device
         shell_cmd(cmd)
-        logger.info("wipe %s filesystem" % block_dev)
+        logger.info("wipe %s filesystem" % self.back_device)
 
 @singleton
 class DrbdManager(object):
@@ -334,6 +343,8 @@ class DrbdManager(object):
         drbd.update(net_info, drbd_info, is_primary)
         # 创建drbd资源文件
         drbd.create_drbd_resource_file()
+        # 擦除文件系统
+        drbd.wipe_fs()
         # 创建drbd元数据
         drbd.create_drbd_meta_data()
         # 启用drbd资源

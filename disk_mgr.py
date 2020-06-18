@@ -41,7 +41,7 @@ class DiskManager(object):
                 result[disc.storage_name] = HA_PREPARE_RESULT.DISK_TYPE_NOT_LVM
                 continue
 
-            # TODO(wzy): 检查磁盘缓存是否开启
+            # TODO(wzy): 检查磁盘缓存是否开启(在perl中进行判断？storage.cfg中有关于bcache的信息？后续待确认)
 
             size = get_disk_size(mount_dir)
 

@@ -39,6 +39,7 @@ class ProcessHandler(object):
     # TODO(wzy): 建立高可用
     def setup_idv_ha(self, net, drbd, is_master, is_force=False):
         logger.info("server recv setup_idv_ha")
+        result = None
 
         block_dev = drbd.block_dev
         res_num = drbd.res_num
@@ -46,7 +47,8 @@ class ProcessHandler(object):
         # 如果目录已经挂载需要先取消挂载，如果是主节点的话之后要再次挂载
         if not self.__disk_mgr.try_umount(block_dev):
             # 取消挂载失败，判断是因为哪种原因的失败，并返回结果
-            return self.__disk_mgr.umount_failed_reason(block_dev)
+            result = self.__disk_mgr.umount_failed_reason(block_dev)
+            return result
 
         if is_idv_ha_enabled():
             # 已经开了IDV_HA,建立HA的请求属于添加新的存储池
@@ -63,9 +65,10 @@ class ProcessHandler(object):
 
         # 启动ovp-idv、drbd等多个服务
         self.__drbd_mgr.start_multi_services()
-
         # 保存信息到配置文件
         self.__drbd_mgr.save_idv_ha_conf(net, drbd, is_master, True)
+
+        return result
 
     # TODO(wzy): 是否准备好建立IDV_HA，条件是元数据创建成功，目录没有挂载
     def read_to_sync(self):
