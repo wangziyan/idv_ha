@@ -6,6 +6,9 @@
 #
 
 class DrbdState(object):
+    """
+    DRBD配置文件状态
+    """
     SUCCESS = 0
     INIT_FAILED = 1
     FORMAT_FAILED = 2

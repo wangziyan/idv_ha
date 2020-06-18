@@ -5,13 +5,14 @@
 # @author: wzy
 #
 
-from constant import HA_PREPARE_RESULT
+from constant import HA_PREPARE_RESULT, HA_SETUP_RESULT
 from tools import (get_disk_info_from_cfg,
                    get_disk_size,
                    is_disk_size_same,
                    is_disk_type_same,
-                   is_content_supported)
-from utility import is_idv_ha_enabled
+                   is_content_supported,
+                   shell_cmd)
+from log import logger
 
 class DiskManager(object):
     def __init__(self):
@@ -57,3 +58,24 @@ class DiskManager(object):
             result[disc.storage_name] = HA_PREPARE_RESULT.SUCCESS
 
         return result
+
+    def try_umount(self, block_dev):
+        # TODO(wzy): 先关闭ovp-idv服务,最后要记得开启ovp-idv服务
+        cmd_stop_service = "systemctl stop ovp-idv"
+        shell_cmd(cmd_stop_service)
+        cmd_umount = "umount -f %s" % block_dev
+        ret, output = shell_cmd(cmd_umount, need_out=True)
+
+        if ret == 0:
+            logger.info("try umount success %s" % block_dev)
+            return True
+        else:
+            # 如果取消挂载失败，再次开启ovp-idv服务
+            cmd_start_service = "systemctl start ovp-idv"
+            shell_cmd(cmd_start_service)
+            logger.error("try umount failed output is %s" % output)
+            return False
+
+    def umount_failed_reason(self, block_dev):
+        # TODO(wzy): 取消挂载失败的原因 是因为虚拟机有启动还是idv打开的镜像没有关闭
+        return HA_SETUP_RESULT.VM_STARTED

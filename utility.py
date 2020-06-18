@@ -31,6 +31,7 @@ def is_idv_ha_enabled():
                     res = True
         except Exception as e:
             logger.error("server is_idv_ha_enabled error: %s" % e)
+
     return res
 
 def is_master_node():
@@ -46,6 +47,7 @@ def is_master_node():
             logger.error("server is_master_node error: %s" % e)
     else:
         logger.error("file %s is not exist" % IDV_HA_CONF)
+
     return res
 
 def get_keepalived_conf():
@@ -65,6 +67,7 @@ def get_keepalived_conf():
             logger.error("server get_keepalived_conf error: %s" % e)
     else:
         conf = None
+
     return conf
 
 def get_drbd_conf():
@@ -75,6 +78,18 @@ def get_drbd_conf():
                 conf = json.load(j_file)
         except Exception as e:
             logger.error("server get_drbd_conf error:%s" % e)
+
+    return conf
+
+def get_idv_ha_conf():
+    conf = None
+    if is_file_exist(IDV_HA_CONF):
+        try:
+            with open(IDV_HA_CONF, "r") as j_file:
+                conf = json.load(j_file)
+        except Exception as e:
+            logger.error("server get_idv_ha_conf error:%s" % e)
+
     return conf
 
 def save_conf(filename, data):

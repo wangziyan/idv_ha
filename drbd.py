@@ -13,7 +13,7 @@ from utility import get_keepalived_conf
 from log import logger
 
 @singleton
-class Drbd(object):
+class DrbdTask(object):
     def __init__(self):
         self.__queue = Queue()
         self.__task_run = False
