@@ -28,6 +28,8 @@ class Drbd(object):
         self.secondary_host = None
         self.is_primary = None
         self.res_num = resource_num
+        self.is_metadata_ready = None
+        self.is_unmount = None
 
         self.role = None
         self.cstate = DrbdConnState.unknown
@@ -109,6 +111,7 @@ class Drbd(object):
 
         if ret != 0:
             logger.error("force primary error: %s" % output)
+
         logger.info("force_primary succcess")
 
         return ret == 0
@@ -293,6 +296,9 @@ class DrbdManager(object):
         save_conf(DRBD_CONF, drbd_conf)
 
     def save_idv_ha_conf(self, net_info, drbd_info, is_primary, enabled):
+        """
+        enabled: True 表示开启高可用 False 表示关闭高可用
+        """
         # 使用有序字典写入配置文件，便于阅读,is useful or useless
         ha_conf = get_idv_ha_conf()
         new_conf = OrderedDict()
@@ -347,11 +353,6 @@ class DrbdManager(object):
         self.drbd_lists.append(drbd)
         # 把drbd信息写入配置文件
         self.save_drbd_conf()
-        # DRBD的首次同步
-        if is_primary:
-            # TODO(wzy): 强制同步前需要询问备节点是否已准备好，主节点作为同步源,进行同步
-            drbd.force_primary()
-            pass
 
     def is_drbd_meta_data_exist(self, res_num, block_dev, version="v09", meta_type="internal"):
         result = False
@@ -382,6 +383,7 @@ class DrbdManager(object):
         drbd_conf = get_drbd_conf()
 
         if drbd_conf:
+            # TODO(wzy): 判断条件过于简单
             for num, res_conf in drbd_conf.items():
                 if res_num == num:
                     logger.info("find drbd configuration we will update it")
@@ -396,3 +398,16 @@ class DrbdManager(object):
 
         # 保存配置到drbd.conf
         self.save_drbd_conf()
+
+    def force_primary_resource(self, res_num):
+        for drbd in self.drbd_lists:
+            if res_num == drbd.res_num:
+                return drbd.force_primary()
+
+    def is_ready_to_sync(self, res_num):
+        for drbd in self.drbd_lists:
+            if res_num == drbd.res_num:
+                if drbd.is_metadata_ready and drbd.is_unmount:
+                    return True
+
+        return False

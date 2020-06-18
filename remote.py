@@ -18,8 +18,8 @@ from log import logger
 
 class Remote(object):
     @classmethod
-    def ready_to_sync(cls, addr):
-        logger.info("remote exec ready_to_setup")
+    def ready_to_sync(cls, addr, res_num):
+        logger.info("remote exec ready_to_sync")
         result = 0
         try:
             socket = TSocket.TSocket(addr, SERVER_PORT)
@@ -27,7 +27,7 @@ class Remote(object):
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
             client = idv_ha.Client(protocol)
             transport.open()
-            result = client.switch_master() # test
+            result = client.ready_to_sync(res_num)
         except (TException, Exception) as e:
             result = 1
             logger.exception("client %s", e)

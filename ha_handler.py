@@ -6,6 +6,7 @@
 #
 
 from threading import Thread
+from time import sleep
 
 from constant import HA_SETUP_RESULT
 from drbd import DrbdTask
@@ -13,6 +14,7 @@ from drbd_mgr import DrbdManager
 from disk_mgr import DiskManager
 from log import logger
 from utility import is_idv_ha_enabled
+from remote import Remote
 
 class ProcessHandler(object):
     def __init__(self):
@@ -50,11 +52,6 @@ class ProcessHandler(object):
             result = self.__disk_mgr.umount_failed_reason(block_dev)
             return result
 
-        if is_idv_ha_enabled():
-            # 已经开了IDV_HA,建立HA的请求属于添加新的存储池
-            self.__drbd_mgr.init_drbd(net, drbd, is_master)
-            return HA_SETUP_RESULT.SUCCESS
-
         # 判断是否存在drbd元数据
         if self.__drbd_mgr.is_drbd_meta_data_exist(res_num, block_dev):
             # 若存在, 更新drbd资源文件,恢复建立连接
@@ -62,6 +59,14 @@ class ProcessHandler(object):
         else:
             # 否则就属于首次建立
             self.__drbd_mgr.init_drbd(net, drbd, is_master)
+
+        # 等待对端是否完成了同步准备工作，然后开始同步
+        for _ in range(3):
+            if Remote.ready_to_sync():
+                self.__drbd_mgr.force_primary_resource(res_num)
+                result = HA_SETUP_RESULT.SUCCESS
+                break
+            sleep(3)
 
         # 启动ovp-idv、drbd等多个服务
         self.__drbd_mgr.start_multi_services()
@@ -71,8 +76,8 @@ class ProcessHandler(object):
         return result
 
     # TODO(wzy): 是否准备好建立IDV_HA，条件是元数据创建成功，目录没有挂载
-    def read_to_sync(self):
-        pass
+    def read_to_sync(self, res_num):
+        return self.__drbd_mgr.is_ready_to_sync(res_num)
 
     # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):
