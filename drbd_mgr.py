@@ -213,7 +213,7 @@ class DrbdManager(object):
 
     def start_multi_services(self):
         # 开启多种服务
-        cmd = "systemctl start drbd ovp-idv"
+        cmd = "systemctl start drbd ovp-idv smb"
         ret, output = shell_cmd(cmd, need_out=True)
         if ret != 0:
             logger.error("start services failed output: %s" % output)
