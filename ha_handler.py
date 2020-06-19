@@ -68,6 +68,12 @@ class ProcessHandler(object):
                 break
             sleep(3)
 
+        # 在子线程创建文件系统，完成后挂载目录
+        if is_master:
+            t = Thread(target=self.__drbd_mgr.mkfs_and_mount, args=(res_num,))
+            t.setDaemon(True)
+            t.start()
+
         # 启动ovp-idv、drbd等多个服务
         self.__drbd_mgr.start_multi_services()
         # 保存信息到配置文件

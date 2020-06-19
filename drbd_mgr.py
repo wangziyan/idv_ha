@@ -41,15 +41,17 @@ class Drbd(object):
         self.is_primary = None
         self.res_num = resource_num
         self.is_metadata_ready = None
-        self.is_unmount = None
+        self.is_unmount = None  # TODO(wzy): 还没有使用到
+        self.fs_type = None
 
         self.role = DrbdRole.unknown
         self.cstate = DrbdConnState.unknown
         self.dstate = DrbdDiskState.d_unknown
         self.rstate = DrbdRState.unknown
-        self.progress = "0%"
+        self.progress = "0"
 
         # 初始化有两种情况，开机读取配置文件以及新建立IDV_HA的DRBD对象
+        # TODO(wzy): status 需要明确具体的含义是什么
         if not resource_conf:
             self.back_device = resource_conf.get("drbd_back_device", "/dev/mapper/vg_drbd-%s" % (self.res_num))
             self.drbd_dev = resource_conf.get("drbd_dev", "/dev/drbd%s" % (self.res_num))
@@ -109,6 +111,17 @@ class Drbd(object):
             return False
 
         return True
+
+    def force_primary(self):
+        cmd = "drbdadm primary %s --force" % self.res_name
+        ret, output = shell_cmd(cmd, need_out=True)
+
+        if ret != 0:
+            logger.error("force primary error: %s" % output)
+
+        logger.info("force_primary succcess")
+
+        return ret == 0
 
     def get_cstate(self):
         cmd = "drbdadm cstate %s" % self.res_name
@@ -170,16 +183,18 @@ class Drbd(object):
 
         return ret
 
-    def force_primary(self):
-        cmd = "drbdadm primary %s --force" % self.res_name
-        ret, output = shell_cmd(cmd, need_out=True)
+    def get_fs_type(self):
+        cmd = "blkid %s" % self.drbd_dev
+        _, output = shell_cmd(cmd, need_out=True)
+        _type = None
 
-        if ret != 0:
-            logger.error("force primary error: %s" % output)
+        try:
+            _type = re.search('TYPE="(.*?)"', output).group(1)
+        except Exception as e:
+            _type = None
+            logger.error("get_fs_type error: %s" % e)
 
-        logger.info("force_primary succcess")
-
-        return ret == 0
+        return _type
 
     def create_drbd_resource_file(self):
         try:
@@ -236,6 +251,19 @@ class Drbd(object):
         if "Sync" in self.rstate:
             self.progress = self.get_sync_progress()
 
+        self.fs_type = self.get_fs_type()
+
+    def mount_dir(self):
+        cmd = self.mount_cmd
+        ret, output = shell_cmd(cmd, need_out=True)
+
+        if ret != 0:
+            self.status = DrbdState.MOUNT_FAILED
+            logger.error("mount resource %s failed output:%s" % (self.res_name, output))
+        else:
+            self.status = DrbdState.SUCCESS
+            logger.info("mount resource %s success" % self.res_name)
+
     def wipe_fs(self):
         cmd = "wipefs -a %s" % self.back_device
         shell_cmd(cmd)
@@ -262,7 +290,6 @@ class DrbdManager(object):
         self.secondary = None
         self.is_primary = None
         self.is_local = False
-        self.role = None
         self.drbd_prepare_ready = False
         self.all_change_dir = []
         self.in_update_time = 0
@@ -279,6 +306,7 @@ class DrbdManager(object):
                     drbd = Drbd(res_num, res_conf)
                     # 根据配置文件初始化原有的状态是否清空
                     # drbd.status = DrbdState.SUCCESS
+                    drbd.up_resource()
 
                     if not drbd.back_device_exist():
                         logger.warning("no drbd device: %s" % drbd.back_device)
@@ -293,7 +321,7 @@ class DrbdManager(object):
             # TODO(wzy): 这里是否需要考虑脑裂的情况？完全依赖配置文件会不会有问题？会有问题的
             if is_master_node():  # master node mount dir
                 self.primary_all_resources()
-                self.mount_dir()
+                self.mount_all_dir()
 
             self.save_drbd_conf()  # 是不是也是多余的操作
             self.drbd_prepare_ready = True
@@ -315,7 +343,11 @@ class DrbdManager(object):
         if ret != 0:
             logger.error("start services failed output: %s" % output)
 
-    def mount_dir(self, add_drbd=None):
+    def update_drbd_task(self):
+        for drbd in self.drbd_lists:
+            drbd.update_drbd_info()
+
+    def mount_all_dir(self, add_drbd=None):
         drbd_lists = []
         if add_drbd:
             drbd_lists.append(add_drbd)
@@ -440,9 +472,6 @@ class DrbdManager(object):
         drbd.create_drbd_meta_data()
         # 启用drbd资源
         drbd.up_resource()
-        # 创建文件系统操作是在同步完成之后进行的,可能比价耗时，在子线程中执行
-        t = Thread(target=drbd.make_fs, args=(drbd.back_device,))
-        t.start()
         self.drbd_lists.append(drbd)
         # 把drbd信息写入配置文件
         self.save_drbd_conf()
@@ -462,6 +491,14 @@ class DrbdManager(object):
             logger.info("drbd meta data exist: %s" % output)
 
         return result
+
+    def is_ready_to_sync(self, res_num):
+        for drbd in self.drbd_lists:
+            if res_num == drbd.res_num:
+                if drbd.is_metadata_ready and drbd.is_unmount:
+                    return True
+
+        return False
 
     def update_and_recovery(self, net_info, drbd_info, is_primary):
         # 重新修改drbd配置文件,资源文件,然后再保存
@@ -497,14 +534,23 @@ class DrbdManager(object):
             if res_num == drbd.res_num:
                 return drbd.force_primary()
 
-    def is_ready_to_sync(self, res_num):
+    def mkfs_and_mount(self, res_num):
         for drbd in self.drbd_lists:
             if res_num == drbd.res_num:
-                if drbd.is_metadata_ready and drbd.is_unmount:
-                    return True
+                # 开始同步后即创建文件系统,可能比较耗时，在子线程中执行
+                t = Thread(target=drbd.make_fs, args=(drbd.back_device,))
+                t.start()
+                break
 
-        return False
+        mkfs_finish = False
+        while True:
+            for drbd in self.drbd_lists:
+                if drbd.res_num == res_num:
+                    if "ext4" == drbd.fs_type:
+                        self.mount_dir()
+                        mkfs_finish = True
 
-    def update_drbd_task(self):
-        for drbd in self.drbd_lists:
-            drbd.update_drbd_info()
+            if mkfs_finish:
+                break
+
+            sleep(3)
