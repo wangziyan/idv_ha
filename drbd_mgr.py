@@ -7,18 +7,30 @@
 
 import os
 from collections import OrderedDict
+import re
 from time import sleep
+from threading import Thread
+
 from common import singleton
 from constant import DRBD_CONF, STORAGE_CONF, IDV_HA_CONF
-from drbd_const import DrbdState, DrbdConnState, DrbdDiskState
-from drbd_cmd import (drbd_base_resource_str)
+from drbd_const import (DrbdState,
+                        DrbdConnState,
+                        DrbdDiskState,
+                        DrbdRState,
+                        DrbdRole,
+                        UPDATE_INTERVERL)
+from drbd_cmd import drbd_base_resource_str
 from log import logger
-from tools import shell_cmd, get_disk_info_from_cfg
+from tools import (shell_cmd,
+                   get_disk_info_from_cfg,
+                   get_block_size,
+                   is_large_disk)
 from utility import (is_idv_ha_enabled,
                      get_drbd_conf,
                      get_idv_ha_conf,
                      is_master_node,
                      save_conf)
+from timer_task import TimerTask
 
 class Drbd(object):
     def __init__(self, resource_num, resource_conf=None):
@@ -31,9 +43,10 @@ class Drbd(object):
         self.is_metadata_ready = None
         self.is_unmount = None
 
-        self.role = None
+        self.role = DrbdRole.unknown
         self.cstate = DrbdConnState.unknown
         self.dstate = DrbdDiskState.d_unknown
+        self.rstate = DrbdRState.unknown
         self.progress = "0%"
 
         # 初始化有两种情况，开机读取配置文件以及新建立IDV_HA的DRBD对象
@@ -84,6 +97,7 @@ class Drbd(object):
             self.status = DrbdState.UP_FAILED
             logger.error("up resource %s failed output:%s" % (self.res_name, output))
             return False
+
         return True
 
     def down_resource(self):
@@ -93,16 +107,67 @@ class Drbd(object):
         if ret != 0:
             logger.error("down resource %s failed output:%s" % (self.res_name, output))
             return False
+
         return True
 
+    def get_cstate(self):
+        cmd = "drbdadm cstate %s" % self.res_name
+        _, output = shell_cmd(cmd, need_out=True)
+        ret = DrbdConnState.d_unknown
+
+        try:
+            ret = output.strip()
+        except Exception as e:
+            logger.exception(e.message)
+
+        return ret
+
     def get_dstate(self):
-        cmd = "drbdadm dstate %s" % (self.res_name)
+        cmd = "drbdadm dstate %s" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
         ret = DrbdDiskState.d_unknown
+
         try:
             ret = output.split('\n')[0].split("/")[0]
         except Exception as e:
             logger.exception(e.message)
+
+        return ret
+
+    def get_rstate(self):
+        cmd = "drbdsetup status %s --verbose" % self.res_name
+        _, output = shell_cmd(cmd, need_out=True)
+        ret = DrbdRState.unknown
+
+        try:
+            ret = re.findall(r"replication:(.+?) ", output)[0]
+        except Exception as e:
+            logger.exception(e.message)
+
+        return ret
+
+    def get_role(self):
+        cmd = "drbdadm role %s" % self.res_name
+        _, output = shell_cmd(cmd, need_out=True)
+        ret = DrbdRole.unknown
+
+        try:
+            ret = output.strip()
+        except Exception as e:
+            logger.exception(e.message)
+
+        return ret
+
+    def get_sync_progress(self):
+        cmd = "drbdsetup status %s --verbose" % self.res_name
+        _, output = shell_cmd(cmd, need_out=True)
+        ret = 0
+
+        try:
+            ret = re.findall(r"done:(.+?)\n", output)[0]
+        except Exception as e:
+            logger.exception(e.message)
+
         return ret
 
     def force_primary(self):
@@ -161,10 +226,33 @@ class Drbd(object):
             self.status = DrbdState.SUCCESS
             logger.info("drbd create meta data success")
 
+    def update_drbd_info(self):
+        self.cstate = self.get_cstate()
+        self.dstate = self.get_dstate()
+        self.rstate = self.get_rstate()
+        self.role = self.get_role()
+
+        # 如果是正在同步状态，更新进度
+        if "Sync" in self.rstate:
+            self.progress = self.get_sync_progress()
+
     def wipe_fs(self):
         cmd = "wipefs -a %s" % self.back_device
         shell_cmd(cmd)
         logger.info("wipe %s filesystem" % self.back_device)
+
+    def make_fs(self, block_dev):
+        size = get_block_size(block_dev)
+
+        if is_large_disk(size):
+            cmd = "mkfs.ext4 -F -T largefile %s" % block_dev
+        else:
+            cmd = "mkfs.ext4 -F %s" % block_dev
+
+        ret, output = shell_cmd(cmd, need_out=True)
+
+        if ret != 0:
+            logger.error("make filesystem failed: %s" % output)
 
 @singleton
 class DrbdManager(object):
@@ -178,6 +266,8 @@ class DrbdManager(object):
         self.drbd_prepare_ready = False
         self.all_change_dir = []
         self.in_update_time = 0
+
+        self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
 
     def prepare(self):
         if is_idv_ha_enabled():
@@ -350,6 +440,9 @@ class DrbdManager(object):
         drbd.create_drbd_meta_data()
         # 启用drbd资源
         drbd.up_resource()
+        # 创建文件系统操作是在同步完成之后进行的,可能比价耗时，在子线程中执行
+        t = Thread(target=drbd.make_fs, args=(drbd.back_device,))
+        t.start()
         self.drbd_lists.append(drbd)
         # 把drbd信息写入配置文件
         self.save_drbd_conf()
@@ -411,3 +504,7 @@ class DrbdManager(object):
                     return True
 
         return False
+
+    def update_drbd_task(self):
+        for drbd in self.drbd_lists:
+            drbd.update_drbd_info()

@@ -5,6 +5,8 @@
 # @author: wzy
 #
 
+UPDATE_INTERVERL = 10
+
 class DrbdState(object):
     """
     DRBD配置文件状态
@@ -30,11 +32,12 @@ class DrbdConnState(object):
     connecting = "Connecting"
     unknown = "unknown"
 
-class DrbdCopyState(object):
+class DrbdRState(object):
     off = "Off"
     established = "Established"
     sync_source = "SyncSource"
     sync_target = "SyncTarget"
+    unknown = "Unknown"
 
 class DrbdRole(object):
     primary = "Primary"

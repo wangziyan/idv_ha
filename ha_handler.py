@@ -54,7 +54,7 @@ class ProcessHandler(object):
 
         # 判断是否存在drbd元数据
         if self.__drbd_mgr.is_drbd_meta_data_exist(res_num, block_dev):
-            # 若存在, 更新drbd资源文件,恢复建立连接
+            # 若存在,更新drbd资源文件,恢复建立连接
             self.__drbd_mgr.update_and_recovery(net, drbd, is_master)
         else:
             # 否则就属于首次建立

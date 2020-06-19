@@ -8,8 +8,10 @@
 import os
 import subprocess
 import tempfile
-from constant import STORAGE_CONF, DISK_SIZE_LIMIT
+import time
 from functools import wraps
+
+from constant import STORAGE_CONF, DISK_SIZE_LIMIT
 from log import logger
 
 def get_system_uptime():
@@ -114,9 +116,10 @@ def get_disk_info_from_cfg(disk_name, value):
 
     return result
 
-def get_disk_size(disk_dir):
+def get_disk_size(mount_dir):
+    # 此方法有问题，如果没有挂载则无法获取正确的磁盘大小
     size = 0
-    cmd = "df -Plh %s | tail -n 1" % disk_dir
+    cmd = "df -Plh %s | tail -n 1" % mount_dir
     ret, output = shell_cmd(cmd, need_out=True)
 
     if ret != 0:
@@ -126,6 +129,24 @@ def get_disk_size(disk_dir):
         size = int(output[1].strip("G"))
 
     return size
+
+def get_block_size(block_dev):
+    """
+    获取分区或磁盘大小
+    """
+    cmd = "lsblk %s --output SIZE | grep -v SIZE" % block_dev
+    _, output = shell_cmd(cmd, need_out=True)
+
+    return output.strip()
+
+def is_large_disk(disk_size):
+    size = disk_size[:-1]
+    unit = disk_size[-1:]
+
+    if unit == "T" or (int(size) > 500 and unit == "G"):
+        return True
+    else:
+        return False
 
 def is_disk_type_same(disk_dir, disk_type):
     cmd = "df -Plh %s | tail -n 1" % disk_dir
@@ -190,3 +211,24 @@ def log_enter_exit(func):
         logger.info("exit function(%s) status(%s)" % (func.__name__, result))
         return result
     return log_content
+
+def set_timer(interval, func_name=None):
+    def _timer(func):
+        @wraps(func)
+        def __timer(*args, **kargs):
+            begin_hour = time.localtime(time.time()).tm_min
+            logger.info("func:%s(%s), is run" % (func.__name__, func_name))
+
+            while True:
+                func(*args, **kargs)
+
+                # every hour print once
+                current_hour = time.localtime(time.time()).tm_min
+
+                if begin_hour != current_hour:
+                    logger.info("func:%s(%s), is run" % (func.__name__, func_name))
+                    begin_hour = current_hour
+
+                time.sleep(interval)
+        return __timer
+    return _timer
