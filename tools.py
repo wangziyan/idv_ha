@@ -24,23 +24,6 @@ def get_system_uptime():
         logger.exception(ex)
     return uptime
 
-def shell_command(cmd, need_out=False):
-    returncode = 1
-    output = ""
-    try:
-        if need_out:
-            returncode = subprocess.check_output(cmd, close_fds=True, shell=True, stderr=subprocess.STDOUT)
-        else:
-            returncode = subprocess.check_call(cmd, close_fds=True, shell=True)
-    except subprocess.CalledProcessError as e:
-        output = e.output
-        logger.exception("shell exec failed cmd:%s output:%s" % (e.cmd, output))
-    finally:
-        if need_out:
-            return returncode, output
-        else:
-            return returncode
-
 def shell_cmd(cmd, need_out=False):
     logger.info("cmd is " + cmd)
     returncode = 0
@@ -84,8 +67,7 @@ def shell_cmd(cmd, need_out=False):
 
 def check_net(interface):
     cmd = "ethtool %s|grep 'Link detected:'|awk -F ':' '{print $2}'" % interface
-    # TODO(WZY): 换成shell_cmd这个方法
-    link = shell_command(cmd, need_out=True)[1].strip().lower()
+    link = shell_cmd(cmd, need_out=True)[1].strip().lower()
 
     return True if link == "yes" else False
 
