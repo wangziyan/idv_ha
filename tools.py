@@ -71,6 +71,15 @@ def check_net(interface):
 
     return True if link == "yes" else False
 
+def get_vip(interface):
+    cmd = "ip addr show %s|grep 'scope global secondary %s'" %(interface, interface)
+    ret, output = shell_cmd(cmd, need_out=True)
+
+    if ret == 0:
+        return output.split("inet")[1].strip().split(" ")[0].split("/")[0]
+    else:
+        return
+
 def get_disk_info_from_cfg(disk_name, value):
     logger.debug("into get_disk_info_from_cfg get %s %s" % (disk_name, value))
     result = ''

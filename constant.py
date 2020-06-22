@@ -45,3 +45,10 @@ class HA_SETUP_RESULT(object):
     THRIFT_ERROR = 4         # Thrift请求出现问题
     ERROR_5 = 5
     UNKNOWN = 10             # 未知
+
+####################################Drbd State####################################
+SUCCESS = 0
+DRBD_INCONSISTENT = 1001
+DRBD_DISKLESS = 1002
+
+ROLE_ABNORMAL_MAX_TIMES = 3

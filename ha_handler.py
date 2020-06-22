@@ -13,7 +13,6 @@ from drbd import DrbdTask
 from drbd_mgr import DrbdManager
 from disk_mgr import DiskManager
 from log import logger
-from utility import is_idv_ha_enabled
 from remote import Remote
 
 class ProcessHandler(object):
@@ -88,7 +87,7 @@ class ProcessHandler(object):
     # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):
         logger.info("server recv drbd health check")
-        return 0
+        return self.__drbd_task.health_check()
 
     # TODO(wzy): 切换为主节点
     def switch_master(self):
