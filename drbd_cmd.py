@@ -5,6 +5,7 @@
 # @author: wzy
 #
 
+from drbd_const import DrbdRole
 from tools import shell_cmd
 
 def drbd_base_resource_str():
@@ -58,3 +59,19 @@ def get_local_role():
             role = [output]
 
     return role
+
+def get_drbd_role():
+    # Drbd所有资源的状态必须要保持一致
+    role = get_local_role()
+    role = list(set(role))
+
+    if len(role) != 1:
+        return DrbdRole.error
+
+    if role[0] == DrbdRole.secondary:
+        return DrbdRole.secondary
+
+    if role[0] == DrbdRole.primary:
+        return DrbdRole.primary
+
+    return DrbdRole.error

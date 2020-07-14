@@ -1,3 +1,4 @@
+namespace perl OVP.IDVHa
 // 磁盘信息
 struct DiskInfo{
     1:string storage_name;  // 存储池名称
@@ -31,18 +32,18 @@ struct NodeInfo{
     1:string hostname;
 }
 
-service idv_ha{
+service Ha{
     // 对端是否具备建立IDV_HA的条件
-    map<string, i32> idv_ha_prepared(1:list<DiskInfo> disk)
+    map<string, i32> prepared(1:list<DiskInfo> disk)
     // 对端是否已经与其他节点建立了IDV_HA
-    bool idv_ha_created_with_others(1:string ip1, 2:string ip2)
+    bool created_with_others(1:string ip1, 2:string ip2)
 
     // 建立idv高可用服务
-    i32 setup_idv_ha(1:NetInfo net, 2:DrbdInfo drbd, 3:bool is_master, 4:optional bool is_force)
+    i32 setup(1:NetInfo net, 2:DrbdInfo drbd, 3:bool is_master, 4:bool is_force)
     // 修改idv高可用服务
-    i32 amend_idv_ha(1:NetInfo net)
+    i32 amend(1:NetInfo net)
     // 删除idv高可用服务
-    i32 remove_idv_ha()
+    i32 remove()
 
     // 备节点汇报磁盘错误信息
     i32 report_disk_error_info(1:list<DiskInfo> disk)
@@ -63,5 +64,5 @@ service idv_ha{
 
 ###########################两个server之间使用的方法##################################
     // 主节点请求备节点是否准备好进行同步
-    bool ready_to_sync(i32 res_num)
+    bool ready_to_sync(1:i32 res_num)
 }

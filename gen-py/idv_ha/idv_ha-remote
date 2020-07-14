@@ -25,7 +25,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print 'Functions:'
   print '   idv_ha_prepared( disk)'
   print '  bool idv_ha_created_with_others(string ip1, string ip2)'
-  print '  i32 setup_idv_ha(NetInfo net, DrbdInfo drbd)'
+  print '  i32 setup_idv_ha(NetInfo net, DrbdInfo drbd, bool is_master, bool is_force)'
   print '  i32 amend_idv_ha(NetInfo net)'
   print '  i32 remove_idv_ha()'
   print '  i32 report_disk_error_info( disk)'
@@ -35,6 +35,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void switch_master()'
   print '  void switch_backup()'
   print '  void switch_faults()'
+  print '  bool ready_to_sync(i32 res_num)'
   print ''
   sys.exit(0)
 
@@ -99,10 +100,10 @@ elif cmd == 'idv_ha_created_with_others':
   pp.pprint(client.idv_ha_created_with_others(args[0],args[1],))
 
 elif cmd == 'setup_idv_ha':
-  if len(args) != 2:
-    print 'setup_idv_ha requires 2 args'
+  if len(args) != 4:
+    print 'setup_idv_ha requires 4 args'
     sys.exit(1)
-  pp.pprint(client.setup_idv_ha(eval(args[0]),eval(args[1]),))
+  pp.pprint(client.setup_idv_ha(eval(args[0]),eval(args[1]),eval(args[2]),eval(args[3]),))
 
 elif cmd == 'amend_idv_ha':
   if len(args) != 1:
@@ -157,6 +158,12 @@ elif cmd == 'switch_faults':
     print 'switch_faults requires 0 args'
     sys.exit(1)
   pp.pprint(client.switch_faults())
+
+elif cmd == 'ready_to_sync':
+  if len(args) != 1:
+    print 'ready_to_sync requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.ready_to_sync(eval(args[0]),))
 
 else:
   print 'Unrecognized method %s' % cmd

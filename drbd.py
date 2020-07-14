@@ -18,7 +18,8 @@ from drbd_const import (DrbdConnState,
                         DrbdRole)
 from drbd_cmd import (get_cstate,
                       get_dstate,
-                      get_local_role)
+                      get_local_role,
+                      get_drbd_role)
 from keepalived import get_keepalived_state, KeepalivedState
 from tools import shell_cmd
 from utility import get_keepalived_conf
@@ -51,8 +52,10 @@ class DrbdTask(object):
             self.__queue.task_done()
 
     def __switch_master(self):
+        logger.info("start switch master")
         print("enter __switch_master")
         print("do nothing")
+        # drbd设备检测
 
     def __switch_backup(self):
         print("enter __switch_backup")
@@ -80,7 +83,7 @@ class DrbdTask(object):
         return SUCCESS
 
     def __role_health_check(self):
-        drbd_role = self.__get_drbd_role()
+        drbd_role = get_drbd_role()
         keepa_state = get_keepalived_state()
 
         if (drbd_role == DrbdRole.primary and keepa_state == KeepalivedState.master) or \
@@ -95,22 +98,6 @@ class DrbdTask(object):
                     self.switch_master()
                 elif keepa_state == KeepalivedState.backup:
                     self.switch_backup()
-
-    def __get_drbd_role(self):
-        # Drbd所有资源的状态必须要保持一致
-        role = get_local_role()
-        role = list(set(role))
-
-        if len(role) != 1:
-            return DrbdRole.error
-
-        if role[0] == DrbdRole.secondary:
-            return DrbdRole.secondary
-
-        if role[0] == DrbdRole.primary:
-            return DrbdRole.primary
-
-        return DrbdRole.error
 
     def switch_master(self):
         self.__queue.put(self.__switch_master)

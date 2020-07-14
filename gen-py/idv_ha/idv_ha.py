@@ -33,11 +33,13 @@ class Iface:
     """
     pass
 
-  def setup_idv_ha(self, net, drbd):
+  def setup_idv_ha(self, net, drbd, is_master, is_force):
     """
     Parameters:
      - net
      - drbd
+     - is_master
+     - is_force
     """
     pass
 
@@ -74,6 +76,13 @@ class Iface:
     pass
 
   def switch_faults(self):
+    pass
+
+  def ready_to_sync(self, res_num):
+    """
+    Parameters:
+     - res_num
+    """
     pass
 
 
@@ -146,20 +155,24 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "idv_ha_created_with_others failed: unknown result");
 
-  def setup_idv_ha(self, net, drbd):
+  def setup_idv_ha(self, net, drbd, is_master, is_force):
     """
     Parameters:
      - net
      - drbd
+     - is_master
+     - is_force
     """
-    self.send_setup_idv_ha(net, drbd)
+    self.send_setup_idv_ha(net, drbd, is_master, is_force)
     return self.recv_setup_idv_ha()
 
-  def send_setup_idv_ha(self, net, drbd):
+  def send_setup_idv_ha(self, net, drbd, is_master, is_force):
     self._oprot.writeMessageBegin('setup_idv_ha', TMessageType.CALL, self._seqid)
     args = setup_idv_ha_args()
     args.net = net
     args.drbd = drbd
+    args.is_master = is_master
+    args.is_force = is_force
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -407,6 +420,36 @@ class Client(Iface):
     self._iprot.readMessageEnd()
     return
 
+  def ready_to_sync(self, res_num):
+    """
+    Parameters:
+     - res_num
+    """
+    self.send_ready_to_sync(res_num)
+    return self.recv_ready_to_sync()
+
+  def send_ready_to_sync(self, res_num):
+    self._oprot.writeMessageBegin('ready_to_sync', TMessageType.CALL, self._seqid)
+    args = ready_to_sync_args()
+    args.res_num = res_num
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_ready_to_sync(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = ready_to_sync_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "ready_to_sync failed: unknown result");
+
 
 class Processor(Iface, TProcessor):
   def __init__(self, handler):
@@ -424,6 +467,7 @@ class Processor(Iface, TProcessor):
     self._processMap["switch_master"] = Processor.process_switch_master
     self._processMap["switch_backup"] = Processor.process_switch_backup
     self._processMap["switch_faults"] = Processor.process_switch_faults
+    self._processMap["ready_to_sync"] = Processor.process_ready_to_sync
 
   def process(self, iprot, oprot):
     (name, type, seqid) = iprot.readMessageBegin()
@@ -467,7 +511,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = setup_idv_ha_result()
-    result.success = self._handler.setup_idv_ha(args.net, args.drbd)
+    result.success = self._handler.setup_idv_ha(args.net, args.drbd, args.is_master, args.is_force)
     oprot.writeMessageBegin("setup_idv_ha", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -568,6 +612,17 @@ class Processor(Iface, TProcessor):
     result = switch_faults_result()
     self._handler.switch_faults()
     oprot.writeMessageBegin("switch_faults", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_ready_to_sync(self, seqid, iprot, oprot):
+    args = ready_to_sync_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = ready_to_sync_result()
+    result.success = self._handler.ready_to_sync(args.res_num)
+    oprot.writeMessageBegin("ready_to_sync", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -849,17 +904,23 @@ class setup_idv_ha_args:
   Attributes:
    - net
    - drbd
+   - is_master
+   - is_force
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'net', (NetInfo, NetInfo.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'drbd', (DrbdInfo, DrbdInfo.thrift_spec), None, ), # 2
+    (3, TType.BOOL, 'is_master', None, None, ), # 3
+    (4, TType.BOOL, 'is_force', None, None, ), # 4
   )
 
-  def __init__(self, net=None, drbd=None,):
+  def __init__(self, net=None, drbd=None, is_master=None, is_force=None,):
     self.net = net
     self.drbd = drbd
+    self.is_master = is_master
+    self.is_force = is_force
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -882,6 +943,16 @@ class setup_idv_ha_args:
           self.drbd.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.BOOL:
+          self.is_master = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.BOOL:
+          self.is_force = iprot.readBool();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -899,6 +970,14 @@ class setup_idv_ha_args:
     if self.drbd is not None:
       oprot.writeFieldBegin('drbd', TType.STRUCT, 2)
       self.drbd.write(oprot)
+      oprot.writeFieldEnd()
+    if self.is_master is not None:
+      oprot.writeFieldBegin('is_master', TType.BOOL, 3)
+      oprot.writeBool(self.is_master)
+      oprot.writeFieldEnd()
+    if self.is_force is not None:
+      oprot.writeFieldBegin('is_force', TType.BOOL, 4)
+      oprot.writeBool(self.is_force)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1863,6 +1942,125 @@ class switch_faults_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('switch_faults_result')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ready_to_sync_args:
+  """
+  Attributes:
+   - res_num
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'res_num', None, None, ), # 1
+  )
+
+  def __init__(self, res_num=None,):
+    self.res_num = res_num
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.res_num = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ready_to_sync_args')
+    if self.res_num is not None:
+      oprot.writeFieldBegin('res_num', TType.I32, 1)
+      oprot.writeI32(self.res_num)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ready_to_sync_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.BOOL:
+          self.success = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ready_to_sync_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.BOOL, 0)
+      oprot.writeBool(self.success)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 

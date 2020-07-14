@@ -12,14 +12,20 @@ from time import sleep
 from threading import Thread
 
 from common import singleton
-from constant import DRBD_CONF, STORAGE_CONF, IDV_HA_CONF
+from constant import (DRBD_CONF,
+                      STORAGE_CONF,
+                      IDV_HA_CONF,
+                      SUCCESS,
+                      DRBD_PRIMARY_FAILED,
+                      DRBD_SECONDARY_FAILED)
 from drbd_const import (DrbdState,
                         DrbdConnState,
                         DrbdDiskState,
                         DrbdRState,
                         DrbdRole,
                         UPDATE_INTERVERL)
-from drbd_cmd import drbd_base_resource_str
+from drbd_cmd import (drbd_base_resource_str,
+                      get_drbd_role)
 from log import logger
 from tools import (shell_cmd,
                    get_disk_info_from_cfg,
@@ -53,7 +59,7 @@ class Drbd(object):
         # 初始化有两种情况，开机读取配置文件以及新建立IDV_HA的DRBD对象
         # TODO(wzy): status 需要明确具体的含义是什么
         if not resource_conf:
-            self.back_device = resource_conf.get("drbd_back_device", "/dev/mapper/vg_drbd-%s" % (self.res_num))
+            self.back_device = resource_conf.get("drbd_back_device", "/dev/mapper/idvha-%s" % (self.res_num))
             self.drbd_dev = resource_conf.get("drbd_dev", "/dev/drbd%s" % (self.res_num))
             self.port = str(7789 + int(self.res_num))
             self.res_name = resource_conf.get("resource_name", "r%s" % (self.res_num))
@@ -87,6 +93,8 @@ class Drbd(object):
         self.is_primary = is_primary
         self.port = str(drbd_info.port)
         self.back_device = drbd_info.block_dev
+        # TODO(wzy):role是否更新，还是等待定时器自动获取
+        self.role = DrbdRole.primary if is_primary else DrbdRole.secondary
 
     def back_device_exist(self):
         return True if os.path.exists(self.back_device) else False
@@ -95,7 +103,7 @@ class Drbd(object):
         cmd = "drbdadm up %s" % self.res_name
         ret, output = shell_cmd(cmd, need_out=True)
 
-        if ret != 0:
+        if ret != SUCCESS:
             self.status = DrbdState.UP_FAILED
             logger.error("up resource %s failed output:%s" % (self.res_name, output))
             return False
@@ -106,7 +114,7 @@ class Drbd(object):
         cmd = "drbdadm down %s" % self.res_name
         ret, output = shell_cmd(cmd, need_out=True)
 
-        if ret != 0:
+        if ret != SUCCESS:
             logger.error("down resource %s failed output:%s" % (self.res_name, output))
             return False
 
@@ -116,48 +124,48 @@ class Drbd(object):
         cmd = "drbdadm primary %s --force" % self.res_name
         ret, output = shell_cmd(cmd, need_out=True)
 
-        if ret != 0:
+        if ret != SUCCESS:
             logger.error("force primary error: %s" % output)
 
         logger.info("force_primary succcess")
 
-        return ret == 0
+        return ret == SUCCESS
 
     def get_cstate(self):
         cmd = "drbdadm cstate %s" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
-        ret = DrbdConnState.d_unknown
+        c_state = DrbdConnState.d_unknown
 
         try:
-            ret = output.strip()
+            c_state = output.strip()
         except Exception as e:
             logger.exception(e.message)
 
-        return ret
+        return c_state
 
     def get_dstate(self):
         cmd = "drbdadm dstate %s" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
-        ret = DrbdDiskState.d_unknown
+        d_state = DrbdDiskState.d_unknown
 
         try:
-            ret = output.split('\n')[0].split("/")[0]
+            d_state = output.split('\n')[0].split("/")[0]
         except Exception as e:
             logger.exception(e.message)
 
-        return ret
+        return d_state
 
     def get_rstate(self):
         cmd = "drbdsetup status %s --verbose" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
-        ret = DrbdRState.unknown
+        role = DrbdRState.unknown
 
         try:
-            ret = re.findall(r"replication:(.+?) ", output)[0]
+            role = re.findall(r"replication:(.+?) ", output)[0]
         except Exception as e:
             logger.exception(e.message)
 
-        return ret
+        return role
 
     def get_role(self):
         cmd = "drbdadm role %s" % self.res_name
@@ -174,14 +182,14 @@ class Drbd(object):
     def get_sync_progress(self):
         cmd = "drbdsetup status %s --verbose" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
-        ret = 0
+        progress = 0
 
         try:
-            ret = re.findall(r"done:(.+?)\n", output)[0]
+            progress = re.findall(r"done:(.+?)\n", output)[0]
         except Exception as e:
             logger.exception(e.message)
 
-        return ret
+        return progress
 
     def get_fs_type(self):
         cmd = "blkid %s" % self.drbd_dev
@@ -234,7 +242,7 @@ class Drbd(object):
         ret, output = shell_cmd(cmd, need_out=True)
 
         # TODO(wzy): 创建元数据前清除了文件系统，所以还会出现哪些创建失败的情况不清楚
-        if ret != 0:
+        if ret != SUCCESS:
             self.status = DrbdState.INIT_FAILED
             logger.error("drbd create meta data failed: %s" % output)
         else:
@@ -257,7 +265,7 @@ class Drbd(object):
         cmd = self.mount_cmd
         ret, output = shell_cmd(cmd, need_out=True)
 
-        if ret != 0:
+        if ret != SUCCESS:
             self.status = DrbdState.MOUNT_FAILED
             logger.error("mount resource %s failed output:%s" % (self.res_name, output))
         else:
@@ -279,7 +287,7 @@ class Drbd(object):
 
         ret, output = shell_cmd(cmd, need_out=True)
 
-        if ret != 0:
+        if ret != SUCCESS:
             logger.error("make filesystem failed: %s" % output)
 
 @singleton
@@ -333,14 +341,14 @@ class DrbdManager(object):
         logger.info("start service drbd......")
         cmd = "systemctl start drbd"
         ret = shell_cmd(cmd)
-        if ret != 0:
+        if ret != SUCCESS:
             logger.error("start service drbd failed")
 
     def start_multi_services(self):
         # 开启多种服务
         cmd = "systemctl start drbd ovp-idv smb"
         ret, output = shell_cmd(cmd, need_out=True)
-        if ret != 0:
+        if ret != SUCCESS:
             logger.error("start services failed output: %s" % output)
 
     def update_drbd_task(self):
@@ -359,7 +367,7 @@ class DrbdManager(object):
             logger.info("drbd mount cmd:%s" % cmd)
             ret, output = shell_cmd(cmd, need_out=True)
 
-            if ret != 0:
+            if ret != SUCCESS:
                 drbd.status = DrbdState.MOUNT_FAILED
                 logger.error("mount resource %s failed output:%s" % (drbd.res_name, output))
             else:
@@ -372,12 +380,12 @@ class DrbdManager(object):
         cmd = "drbdadm primary all"
         ret, output = shell_cmd(cmd, need_out=True)
 
-        if ret != 0:
+        if ret != SUCCESS:
             logger.error(output)
             return False
         logger.info("primary_all_resources succcess")
 
-        return ret == 0
+        return ret == SUCCESS
 
     def check_inactive_state(self):
         count = 0
@@ -544,6 +552,7 @@ class DrbdManager(object):
 
         mkfs_finish = False
         while True:
+            # 文件系统创建结束后挂载目录
             for drbd in self.drbd_lists:
                 if drbd.res_num == res_num:
                     if "ext4" == drbd.fs_type:
@@ -554,3 +563,18 @@ class DrbdManager(object):
                 break
 
             sleep(3)
+
+    def switch_backup(self):
+        if get_drbd_role() == DrbdRole.secondary:
+            for _ in range(3):
+                output = shell_cmd("drbdadm secondary all", need_out=True)[1]
+                logger.info(output)
+                sleep(2)
+                if get_drbd_role() == DrbdRole.secondary:
+                    break
+
+        if get_drbd_role() != DrbdRole.secondary:
+            logger.error("drbd secondary resource failed")
+            return DRBD_SECONDARY_FAILED
+
+        return SUCCESS

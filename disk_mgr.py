@@ -31,6 +31,7 @@ class DiskManager(object):
 
             mount_dir = get_disk_info_from_cfg(disc.storage_name, "path")
 
+            # TODO(wzy)：磁盘盘符不一致，是否认为不能建立高可用？
             if mount_dir == "":
                 # 存储池名称不一致
                 result[disc.storage_name] = HA_PREPARE_RESULT.STORAGE_NAME_DIFF

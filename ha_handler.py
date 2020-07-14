@@ -91,6 +91,7 @@ class ProcessHandler(object):
 
     # TODO(wzy): 切换为主节点
     def switch_master(self):
+        # TODO(wzy): 备切换主的限制是什么？
         logger.info("server recv switch master")
         print("server recv switch master")
         self.__drbd_task.switch_master()
@@ -100,3 +101,4 @@ class ProcessHandler(object):
         logger.info("server recv switch backup")
         print("server recv switch backup")
         self.__drbd_task.switch_backup()
+        self.__drbd_mgr.switch_backup()

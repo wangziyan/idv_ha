@@ -130,23 +130,23 @@ class NetInfo:
   Attributes:
    - vip
    - rid
-   - m_ip
-   - b_ip
+   - master_ip
+   - backup_ip
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'vip', None, None, ), # 1
     (2, TType.STRING, 'rid', None, None, ), # 2
-    (3, TType.STRING, 'm_ip', None, None, ), # 3
-    (4, TType.STRING, 'b_ip', None, None, ), # 4
+    (3, TType.STRING, 'master_ip', None, None, ), # 3
+    (4, TType.STRING, 'backup_ip', None, None, ), # 4
   )
 
-  def __init__(self, vip=None, rid=None, m_ip=None, b_ip=None,):
+  def __init__(self, vip=None, rid=None, master_ip=None, backup_ip=None,):
     self.vip = vip
     self.rid = rid
-    self.m_ip = m_ip
-    self.b_ip = b_ip
+    self.master_ip = master_ip
+    self.backup_ip = backup_ip
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -169,12 +169,12 @@ class NetInfo:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRING:
-          self.m_ip = iprot.readString();
+          self.master_ip = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.STRING:
-          self.b_ip = iprot.readString();
+          self.backup_ip = iprot.readString();
         else:
           iprot.skip(ftype)
       else:
@@ -195,13 +195,13 @@ class NetInfo:
       oprot.writeFieldBegin('rid', TType.STRING, 2)
       oprot.writeString(self.rid)
       oprot.writeFieldEnd()
-    if self.m_ip is not None:
-      oprot.writeFieldBegin('m_ip', TType.STRING, 3)
-      oprot.writeString(self.m_ip)
+    if self.master_ip is not None:
+      oprot.writeFieldBegin('master_ip', TType.STRING, 3)
+      oprot.writeString(self.master_ip)
       oprot.writeFieldEnd()
-    if self.b_ip is not None:
-      oprot.writeFieldBegin('b_ip', TType.STRING, 4)
-      oprot.writeString(self.b_ip)
+    if self.backup_ip is not None:
+      oprot.writeFieldBegin('backup_ip', TType.STRING, 4)
+      oprot.writeString(self.backup_ip)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -226,23 +226,32 @@ class DrbdInfo:
   Attributes:
    - res_num
    - port_num
-   - node
-   - block
+   - primary_host
+   - secondary_host
+   - block_dev
+   - is_external
+   - metedata
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.I32, 'res_num', None, None, ), # 1
     (2, TType.I32, 'port_num', None, None, ), # 2
-    (3, TType.STRING, 'node', None, None, ), # 3
-    (4, TType.STRING, 'block', None, None, ), # 4
+    (3, TType.STRING, 'primary_host', None, None, ), # 3
+    (4, TType.STRING, 'secondary_host', None, None, ), # 4
+    (5, TType.STRING, 'block_dev', None, None, ), # 5
+    (6, TType.BOOL, 'is_external', None, None, ), # 6
+    (7, TType.STRING, 'metedata', None, None, ), # 7
   )
 
-  def __init__(self, res_num=None, port_num=None, node=None, block=None,):
+  def __init__(self, res_num=None, port_num=None, primary_host=None, secondary_host=None, block_dev=None, is_external=None, metedata=None,):
     self.res_num = res_num
     self.port_num = port_num
-    self.node = node
-    self.block = block
+    self.primary_host = primary_host
+    self.secondary_host = secondary_host
+    self.block_dev = block_dev
+    self.is_external = is_external
+    self.metedata = metedata
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -265,12 +274,27 @@ class DrbdInfo:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRING:
-          self.node = iprot.readString();
+          self.primary_host = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.STRING:
-          self.block = iprot.readString();
+          self.secondary_host = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.block_dev = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.BOOL:
+          self.is_external = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.metedata = iprot.readString();
         else:
           iprot.skip(ftype)
       else:
@@ -291,13 +315,25 @@ class DrbdInfo:
       oprot.writeFieldBegin('port_num', TType.I32, 2)
       oprot.writeI32(self.port_num)
       oprot.writeFieldEnd()
-    if self.node is not None:
-      oprot.writeFieldBegin('node', TType.STRING, 3)
-      oprot.writeString(self.node)
+    if self.primary_host is not None:
+      oprot.writeFieldBegin('primary_host', TType.STRING, 3)
+      oprot.writeString(self.primary_host)
       oprot.writeFieldEnd()
-    if self.block is not None:
-      oprot.writeFieldBegin('block', TType.STRING, 4)
-      oprot.writeString(self.block)
+    if self.secondary_host is not None:
+      oprot.writeFieldBegin('secondary_host', TType.STRING, 4)
+      oprot.writeString(self.secondary_host)
+      oprot.writeFieldEnd()
+    if self.block_dev is not None:
+      oprot.writeFieldBegin('block_dev', TType.STRING, 5)
+      oprot.writeString(self.block_dev)
+      oprot.writeFieldEnd()
+    if self.is_external is not None:
+      oprot.writeFieldBegin('is_external', TType.BOOL, 6)
+      oprot.writeBool(self.is_external)
+      oprot.writeFieldEnd()
+    if self.metedata is not None:
+      oprot.writeFieldBegin('metedata', TType.STRING, 7)
+      oprot.writeString(self.metedata)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
