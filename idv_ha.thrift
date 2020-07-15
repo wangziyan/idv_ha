@@ -65,4 +65,7 @@ service Ha{
 ###########################两个server之间使用的方法##################################
     // 主节点请求备节点是否准备好进行同步
     bool ready_to_sync(1:i32 res_num)
+
+    // 获取idv高可用配置信息
+    map<string, string> get_ha_info();
 }

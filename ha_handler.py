@@ -38,7 +38,7 @@ class ProcessHandler(object):
         return self.__disk_mgr.is_disk_matched(disks)
 
     # TODO(wzy): 建立高可用
-    def setup_idv_ha(self, net, drbd, is_master, is_force=False):
+    def setup(self, net, drbd, is_master, is_force=False):
         logger.info("server recv setup_idv_ha")
         result = None
 
@@ -102,3 +102,8 @@ class ProcessHandler(object):
         print("server recv switch backup")
         self.__drbd_task.switch_backup()
         self.__drbd_mgr.switch_backup()
+
+    def get_ha_info(self):
+        logger.info("server get idv info from perl")
+        print("server get idv info from perl")
+        return self.__drbd_mgr.get_ha_info()

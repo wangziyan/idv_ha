@@ -18,7 +18,7 @@ from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
 
-from idv_ha import idv_ha
+from idv_ha import Ha
 
 from constant import SERVER_PORT
 from tools import get_system_uptime, shell_cmd
@@ -53,7 +53,7 @@ class HAServer(object):
         signal.signal(signal.SIGTERM, self._handle_signal)
 
         handler = ProcessHandler()
-        processor = idv_ha.Processor(handler)
+        processor = Ha.Processor(handler)
         transport = TSocket.TServerSocket(self.host, self.port)
         tfactory = TTransport.TBufferedTransportFactory()
         pfactory = TBinaryProtocol.TBinaryProtocolFactory()

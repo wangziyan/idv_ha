@@ -13,7 +13,7 @@ from thrift.protocol import TBinaryProtocol
 from thrift.Thrift import TException
 
 from constant import SERVER_PORT
-from idv_ha import idv_ha
+from idv_ha import Ha
 from log import logger
 
 class Remote(object):
@@ -25,7 +25,7 @@ class Remote(object):
             socket = TSocket.TSocket(addr, SERVER_PORT)
             transport = TTransport.TBufferedTransport(socket)
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
-            client = idv_ha.Client(protocol)
+            client = Ha.Client(protocol)
             transport.open()
             result = client.ready_to_sync(res_num)
         except (TException, Exception) as e:

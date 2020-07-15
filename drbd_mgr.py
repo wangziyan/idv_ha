@@ -6,6 +6,8 @@
 #
 
 import os
+import sys
+sys.path.append('gen-py')
 from collections import OrderedDict
 import re
 from time import sleep
@@ -35,7 +37,8 @@ from utility import (is_idv_ha_enabled,
                      get_drbd_conf,
                      get_idv_ha_conf,
                      is_master_node,
-                     save_conf)
+                     save_conf,
+                     get_keepalived_conf)
 from timer_task import TimerTask
 
 class Drbd(object):
@@ -578,3 +581,18 @@ class DrbdManager(object):
             return DRBD_SECONDARY_FAILED
 
         return SUCCESS
+
+    def get_ha_info(self):
+        keepavlied_conf = get_keepalived_conf()
+        vip = keepavlied_conf.get("virtual_ip", "")
+        rid = keepavlied_conf.get("router_id", "")
+
+        idv_info = {
+            "islocal": "1" if self.is_local else "0",
+            "virip": vip,
+            "routeid": str(rid),
+            "role": "Master" if self.is_primary else "Slave",
+            "status": str(0)
+        }
+
+        return idv_info

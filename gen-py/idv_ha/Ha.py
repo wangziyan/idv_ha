@@ -18,14 +18,14 @@ except:
 
 
 class Iface:
-  def idv_ha_prepared(self, disk):
+  def prepared(self, disk):
     """
     Parameters:
      - disk
     """
     pass
 
-  def idv_ha_created_with_others(self, ip1, ip2):
+  def created_with_others(self, ip1, ip2):
     """
     Parameters:
      - ip1
@@ -33,7 +33,7 @@ class Iface:
     """
     pass
 
-  def setup_idv_ha(self, net, drbd, is_master, is_force):
+  def setup(self, net, drbd, is_master, is_force):
     """
     Parameters:
      - net
@@ -43,14 +43,14 @@ class Iface:
     """
     pass
 
-  def amend_idv_ha(self, net):
+  def amend(self, net):
     """
     Parameters:
      - net
     """
     pass
 
-  def remove_idv_ha(self):
+  def remove(self):
     pass
 
   def report_disk_error_info(self, disk):
@@ -85,6 +85,9 @@ class Iface:
     """
     pass
 
+  def get_ha_info(self):
+    pass
+
 
 class Client(Iface):
   def __init__(self, iprot, oprot=None):
@@ -93,69 +96,69 @@ class Client(Iface):
       self._oprot = oprot
     self._seqid = 0
 
-  def idv_ha_prepared(self, disk):
+  def prepared(self, disk):
     """
     Parameters:
      - disk
     """
-    self.send_idv_ha_prepared(disk)
-    return self.recv_idv_ha_prepared()
+    self.send_prepared(disk)
+    return self.recv_prepared()
 
-  def send_idv_ha_prepared(self, disk):
-    self._oprot.writeMessageBegin('idv_ha_prepared', TMessageType.CALL, self._seqid)
-    args = idv_ha_prepared_args()
+  def send_prepared(self, disk):
+    self._oprot.writeMessageBegin('prepared', TMessageType.CALL, self._seqid)
+    args = prepared_args()
     args.disk = disk
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_idv_ha_prepared(self):
+  def recv_prepared(self):
     (fname, mtype, rseqid) = self._iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
       x.read(self._iprot)
       self._iprot.readMessageEnd()
       raise x
-    result = idv_ha_prepared_result()
+    result = prepared_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "idv_ha_prepared failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "prepared failed: unknown result");
 
-  def idv_ha_created_with_others(self, ip1, ip2):
+  def created_with_others(self, ip1, ip2):
     """
     Parameters:
      - ip1
      - ip2
     """
-    self.send_idv_ha_created_with_others(ip1, ip2)
-    return self.recv_idv_ha_created_with_others()
+    self.send_created_with_others(ip1, ip2)
+    return self.recv_created_with_others()
 
-  def send_idv_ha_created_with_others(self, ip1, ip2):
-    self._oprot.writeMessageBegin('idv_ha_created_with_others', TMessageType.CALL, self._seqid)
-    args = idv_ha_created_with_others_args()
+  def send_created_with_others(self, ip1, ip2):
+    self._oprot.writeMessageBegin('created_with_others', TMessageType.CALL, self._seqid)
+    args = created_with_others_args()
     args.ip1 = ip1
     args.ip2 = ip2
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_idv_ha_created_with_others(self):
+  def recv_created_with_others(self):
     (fname, mtype, rseqid) = self._iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
       x.read(self._iprot)
       self._iprot.readMessageEnd()
       raise x
-    result = idv_ha_created_with_others_result()
+    result = created_with_others_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "idv_ha_created_with_others failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "created_with_others failed: unknown result");
 
-  def setup_idv_ha(self, net, drbd, is_master, is_force):
+  def setup(self, net, drbd, is_master, is_force):
     """
     Parameters:
      - net
@@ -163,12 +166,12 @@ class Client(Iface):
      - is_master
      - is_force
     """
-    self.send_setup_idv_ha(net, drbd, is_master, is_force)
-    return self.recv_setup_idv_ha()
+    self.send_setup(net, drbd, is_master, is_force)
+    return self.recv_setup()
 
-  def send_setup_idv_ha(self, net, drbd, is_master, is_force):
-    self._oprot.writeMessageBegin('setup_idv_ha', TMessageType.CALL, self._seqid)
-    args = setup_idv_ha_args()
+  def send_setup(self, net, drbd, is_master, is_force):
+    self._oprot.writeMessageBegin('setup', TMessageType.CALL, self._seqid)
+    args = setup_args()
     args.net = net
     args.drbd = drbd
     args.is_master = is_master
@@ -177,74 +180,74 @@ class Client(Iface):
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_setup_idv_ha(self):
+  def recv_setup(self):
     (fname, mtype, rseqid) = self._iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
       x.read(self._iprot)
       self._iprot.readMessageEnd()
       raise x
-    result = setup_idv_ha_result()
+    result = setup_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "setup_idv_ha failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "setup failed: unknown result");
 
-  def amend_idv_ha(self, net):
+  def amend(self, net):
     """
     Parameters:
      - net
     """
-    self.send_amend_idv_ha(net)
-    return self.recv_amend_idv_ha()
+    self.send_amend(net)
+    return self.recv_amend()
 
-  def send_amend_idv_ha(self, net):
-    self._oprot.writeMessageBegin('amend_idv_ha', TMessageType.CALL, self._seqid)
-    args = amend_idv_ha_args()
+  def send_amend(self, net):
+    self._oprot.writeMessageBegin('amend', TMessageType.CALL, self._seqid)
+    args = amend_args()
     args.net = net
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_amend_idv_ha(self):
+  def recv_amend(self):
     (fname, mtype, rseqid) = self._iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
       x.read(self._iprot)
       self._iprot.readMessageEnd()
       raise x
-    result = amend_idv_ha_result()
+    result = amend_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "amend_idv_ha failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "amend failed: unknown result");
 
-  def remove_idv_ha(self):
-    self.send_remove_idv_ha()
-    return self.recv_remove_idv_ha()
+  def remove(self):
+    self.send_remove()
+    return self.recv_remove()
 
-  def send_remove_idv_ha(self):
-    self._oprot.writeMessageBegin('remove_idv_ha', TMessageType.CALL, self._seqid)
-    args = remove_idv_ha_args()
+  def send_remove(self):
+    self._oprot.writeMessageBegin('remove', TMessageType.CALL, self._seqid)
+    args = remove_args()
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_remove_idv_ha(self):
+  def recv_remove(self):
     (fname, mtype, rseqid) = self._iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
       x.read(self._iprot)
       self._iprot.readMessageEnd()
       raise x
-    result = remove_idv_ha_result()
+    result = remove_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "remove_idv_ha failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "remove failed: unknown result");
 
   def report_disk_error_info(self, disk):
     """
@@ -450,16 +453,41 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "ready_to_sync failed: unknown result");
 
+  def get_ha_info(self):
+    self.send_get_ha_info()
+    return self.recv_get_ha_info()
+
+  def send_get_ha_info(self):
+    self._oprot.writeMessageBegin('get_ha_info', TMessageType.CALL, self._seqid)
+    args = get_ha_info_args()
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_get_ha_info(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = get_ha_info_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "get_ha_info failed: unknown result");
+
 
 class Processor(Iface, TProcessor):
   def __init__(self, handler):
     self._handler = handler
     self._processMap = {}
-    self._processMap["idv_ha_prepared"] = Processor.process_idv_ha_prepared
-    self._processMap["idv_ha_created_with_others"] = Processor.process_idv_ha_created_with_others
-    self._processMap["setup_idv_ha"] = Processor.process_setup_idv_ha
-    self._processMap["amend_idv_ha"] = Processor.process_amend_idv_ha
-    self._processMap["remove_idv_ha"] = Processor.process_remove_idv_ha
+    self._processMap["prepared"] = Processor.process_prepared
+    self._processMap["created_with_others"] = Processor.process_created_with_others
+    self._processMap["setup"] = Processor.process_setup
+    self._processMap["amend"] = Processor.process_amend
+    self._processMap["remove"] = Processor.process_remove
     self._processMap["report_disk_error_info"] = Processor.process_report_disk_error_info
     self._processMap["drbd_health_check"] = Processor.process_drbd_health_check
     self._processMap["idv_service_check"] = Processor.process_idv_service_check
@@ -468,6 +496,7 @@ class Processor(Iface, TProcessor):
     self._processMap["switch_backup"] = Processor.process_switch_backup
     self._processMap["switch_faults"] = Processor.process_switch_faults
     self._processMap["ready_to_sync"] = Processor.process_ready_to_sync
+    self._processMap["get_ha_info"] = Processor.process_get_ha_info
 
   def process(self, iprot, oprot):
     (name, type, seqid) = iprot.readMessageBegin()
@@ -484,57 +513,57 @@ class Processor(Iface, TProcessor):
       self._processMap[name](self, seqid, iprot, oprot)
     return True
 
-  def process_idv_ha_prepared(self, seqid, iprot, oprot):
-    args = idv_ha_prepared_args()
+  def process_prepared(self, seqid, iprot, oprot):
+    args = prepared_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = idv_ha_prepared_result()
-    result.success = self._handler.idv_ha_prepared(args.disk)
-    oprot.writeMessageBegin("idv_ha_prepared", TMessageType.REPLY, seqid)
+    result = prepared_result()
+    result.success = self._handler.prepared(args.disk)
+    oprot.writeMessageBegin("prepared", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
-  def process_idv_ha_created_with_others(self, seqid, iprot, oprot):
-    args = idv_ha_created_with_others_args()
+  def process_created_with_others(self, seqid, iprot, oprot):
+    args = created_with_others_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = idv_ha_created_with_others_result()
-    result.success = self._handler.idv_ha_created_with_others(args.ip1, args.ip2)
-    oprot.writeMessageBegin("idv_ha_created_with_others", TMessageType.REPLY, seqid)
+    result = created_with_others_result()
+    result.success = self._handler.created_with_others(args.ip1, args.ip2)
+    oprot.writeMessageBegin("created_with_others", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
-  def process_setup_idv_ha(self, seqid, iprot, oprot):
-    args = setup_idv_ha_args()
+  def process_setup(self, seqid, iprot, oprot):
+    args = setup_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = setup_idv_ha_result()
-    result.success = self._handler.setup_idv_ha(args.net, args.drbd, args.is_master, args.is_force)
-    oprot.writeMessageBegin("setup_idv_ha", TMessageType.REPLY, seqid)
+    result = setup_result()
+    result.success = self._handler.setup(args.net, args.drbd, args.is_master, args.is_force)
+    oprot.writeMessageBegin("setup", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
-  def process_amend_idv_ha(self, seqid, iprot, oprot):
-    args = amend_idv_ha_args()
+  def process_amend(self, seqid, iprot, oprot):
+    args = amend_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = amend_idv_ha_result()
-    result.success = self._handler.amend_idv_ha(args.net)
-    oprot.writeMessageBegin("amend_idv_ha", TMessageType.REPLY, seqid)
+    result = amend_result()
+    result.success = self._handler.amend(args.net)
+    oprot.writeMessageBegin("amend", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
-  def process_remove_idv_ha(self, seqid, iprot, oprot):
-    args = remove_idv_ha_args()
+  def process_remove(self, seqid, iprot, oprot):
+    args = remove_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = remove_idv_ha_result()
-    result.success = self._handler.remove_idv_ha()
-    oprot.writeMessageBegin("remove_idv_ha", TMessageType.REPLY, seqid)
+    result = remove_result()
+    result.success = self._handler.remove()
+    oprot.writeMessageBegin("remove", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -627,10 +656,21 @@ class Processor(Iface, TProcessor):
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
+  def process_get_ha_info(self, seqid, iprot, oprot):
+    args = get_ha_info_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = get_ha_info_result()
+    result.success = self._handler.get_ha_info()
+    oprot.writeMessageBegin("get_ha_info", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
 
 # HELPER FUNCTIONS AND STRUCTURES
 
-class idv_ha_prepared_args:
+class prepared_args:
   """
   Attributes:
    - disk
@@ -673,7 +713,7 @@ class idv_ha_prepared_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('idv_ha_prepared_args')
+    oprot.writeStructBegin('prepared_args')
     if self.disk is not None:
       oprot.writeFieldBegin('disk', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.disk))
@@ -699,7 +739,7 @@ class idv_ha_prepared_args:
   def __ne__(self, other):
     return not (self == other)
 
-class idv_ha_prepared_result:
+class prepared_result:
   """
   Attributes:
    - success
@@ -741,7 +781,7 @@ class idv_ha_prepared_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('idv_ha_prepared_result')
+    oprot.writeStructBegin('prepared_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.MAP, 0)
       oprot.writeMapBegin(TType.STRING, TType.I32, len(self.success))
@@ -768,7 +808,7 @@ class idv_ha_prepared_result:
   def __ne__(self, other):
     return not (self == other)
 
-class idv_ha_created_with_others_args:
+class created_with_others_args:
   """
   Attributes:
    - ip1
@@ -813,7 +853,7 @@ class idv_ha_created_with_others_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('idv_ha_created_with_others_args')
+    oprot.writeStructBegin('created_with_others_args')
     if self.ip1 is not None:
       oprot.writeFieldBegin('ip1', TType.STRING, 1)
       oprot.writeString(self.ip1)
@@ -840,7 +880,7 @@ class idv_ha_created_with_others_args:
   def __ne__(self, other):
     return not (self == other)
 
-class idv_ha_created_with_others_result:
+class created_with_others_result:
   """
   Attributes:
    - success
@@ -876,7 +916,7 @@ class idv_ha_created_with_others_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('idv_ha_created_with_others_result')
+    oprot.writeStructBegin('created_with_others_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.BOOL, 0)
       oprot.writeBool(self.success)
@@ -899,7 +939,7 @@ class idv_ha_created_with_others_result:
   def __ne__(self, other):
     return not (self == other)
 
-class setup_idv_ha_args:
+class setup_args:
   """
   Attributes:
    - net
@@ -962,7 +1002,7 @@ class setup_idv_ha_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('setup_idv_ha_args')
+    oprot.writeStructBegin('setup_args')
     if self.net is not None:
       oprot.writeFieldBegin('net', TType.STRUCT, 1)
       self.net.write(oprot)
@@ -997,7 +1037,7 @@ class setup_idv_ha_args:
   def __ne__(self, other):
     return not (self == other)
 
-class setup_idv_ha_result:
+class setup_result:
   """
   Attributes:
    - success
@@ -1033,7 +1073,7 @@ class setup_idv_ha_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('setup_idv_ha_result')
+    oprot.writeStructBegin('setup_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.I32, 0)
       oprot.writeI32(self.success)
@@ -1056,7 +1096,7 @@ class setup_idv_ha_result:
   def __ne__(self, other):
     return not (self == other)
 
-class amend_idv_ha_args:
+class amend_args:
   """
   Attributes:
    - net
@@ -1094,7 +1134,7 @@ class amend_idv_ha_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('amend_idv_ha_args')
+    oprot.writeStructBegin('amend_args')
     if self.net is not None:
       oprot.writeFieldBegin('net', TType.STRUCT, 1)
       self.net.write(oprot)
@@ -1117,7 +1157,7 @@ class amend_idv_ha_args:
   def __ne__(self, other):
     return not (self == other)
 
-class amend_idv_ha_result:
+class amend_result:
   """
   Attributes:
    - success
@@ -1153,7 +1193,7 @@ class amend_idv_ha_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('amend_idv_ha_result')
+    oprot.writeStructBegin('amend_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.I32, 0)
       oprot.writeI32(self.success)
@@ -1176,7 +1216,7 @@ class amend_idv_ha_result:
   def __ne__(self, other):
     return not (self == other)
 
-class remove_idv_ha_args:
+class remove_args:
 
   thrift_spec = (
   )
@@ -1199,7 +1239,7 @@ class remove_idv_ha_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('remove_idv_ha_args')
+    oprot.writeStructBegin('remove_args')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -1218,7 +1258,7 @@ class remove_idv_ha_args:
   def __ne__(self, other):
     return not (self == other)
 
-class remove_idv_ha_result:
+class remove_result:
   """
   Attributes:
    - success
@@ -1254,7 +1294,7 @@ class remove_idv_ha_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('remove_idv_ha_result')
+    oprot.writeStructBegin('remove_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.I32, 0)
       oprot.writeI32(self.success)
@@ -2060,6 +2100,117 @@ class ready_to_sync_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.BOOL, 0)
       oprot.writeBool(self.success)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class get_ha_info_args:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('get_ha_info_args')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class get_ha_info_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.MAP, 'success', (TType.STRING,None,TType.STRING,None), None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.MAP:
+          self.success = {}
+          (_ktype24, _vtype25, _size23 ) = iprot.readMapBegin()
+          for _i27 in xrange(_size23):
+            _key28 = iprot.readString();
+            _val29 = iprot.readString();
+            self.success[_key28] = _val29
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('get_ha_info_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.MAP, 0)
+      oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.success))
+      for kiter30,viter31 in self.success.items():
+        oprot.writeString(kiter30)
+        oprot.writeString(viter31)
+      oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

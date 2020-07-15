@@ -72,7 +72,7 @@ def check_net(interface):
     return True if link == "yes" else False
 
 def get_vip(interface):
-    cmd = "ip addr show %s|grep 'scope global secondary %s'" %(interface, interface)
+    cmd = "ip addr show %s|grep 'scope global secondary %s'" % (interface, interface)
     ret, output = shell_cmd(cmd, need_out=True)
 
     if ret == 0:
@@ -114,7 +114,7 @@ def get_disk_size(mount_dir):
     ret, output = shell_cmd(cmd, need_out=True)
 
     if ret != 0:
-        logger.error("the dir: %s is not exist" % disk_dir)
+        logger.error("the dir: %s is not exist" % mount_dir)
     else:
         output = output.strip().split()
         size = int(output[1].strip("G"))
