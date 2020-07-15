@@ -184,15 +184,15 @@ def is_content_supported(disk_name, remote_content):
         if "idv" not in contents:
             return False
         else:
-            if disk_name == "local":
-                # local要保证内容是一致的
-                contents.sort()
-                remote_content.sort()
-                return True if contents == remote_content else False
-            if len(contents) > 1:
-                # 其他只能是idv镜像
-                return False
-            return True
+            # if disk_name == "local":
+            # local要保证内容是一致的
+            contents.sort()
+            remote_content.sort()
+            return True if contents == remote_content else False
+            # if len(contents) > 1:
+            # 其他只能是idv镜像
+            # return False
+            # return True
 
 def log_enter_exit(func):
     @wraps(func)

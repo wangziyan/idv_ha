@@ -27,12 +27,12 @@ class ProcessHandler(object):
     def prepare(self):
         self.__drbd_mgr.prepare()
 
-    def idv_ha_created_with_others(self, ip1, ip2):
+    def created_with_others(self, ip1, ip2):
         # 检测是否已与其他节点建立了HA
         logger.info("server recv idv_ha_created_with_others")
         return self.__drbd_mgr.have_drbd_with_others(ip1, ip2)
 
-    def idv_ha_prepared(self, disks):
+    def prepared(self, disks):
         # 检测是否具备开启idv ha的条件
         logger.info("server recv idv_ha_prepared")
         return self.__disk_mgr.is_disk_matched(disks)
@@ -61,6 +61,7 @@ class ProcessHandler(object):
 
         # 等待对端是否完成了同步准备工作，然后开始同步
         for _ in range(3):
+            # TODO 缺少参数 addr
             if Remote.ready_to_sync():
                 self.__drbd_mgr.force_primary_resource(res_num)
                 result = HA_SETUP_RESULT.SUCCESS
