@@ -9,6 +9,7 @@ import os
 import subprocess
 import tempfile
 import time
+import re
 from functools import wraps
 
 from constant import STORAGE_CONF, DISK_SIZE_LIMIT
@@ -71,6 +72,12 @@ def check_net(interface):
 
     return True if link == "yes" else False
 
+def get_local_hostname():
+    cmd = "hostname"
+    _, output = shell_cmd(cmd, need_out=True)
+
+    return output
+
 def get_vip(interface):
     cmd = "ip addr show %s|grep 'scope global secondary %s'" % (interface, interface)
     ret, output = shell_cmd(cmd, need_out=True)
@@ -91,9 +98,9 @@ def get_disk_info_from_cfg(disk_name, value):
         logger.error('the STORAGE_CONF size is 0')
         return result
     try:
-        with open(STORAGE_CONF, 'r') as f:
+        with open(STORAGE_CONF, 'r') as file:
             logger.debug("open STORAGE_CONF ok %s" % fsize)
-            for line in f.readlines():
+            for line in file.readlines():
                 curline = line.strip().split(' ')
                 if curline[0] == 'dir:' and curline[1] == disk_name:
                     disk_find = 1
@@ -107,19 +114,16 @@ def get_disk_info_from_cfg(disk_name, value):
 
     return result
 
-def get_disk_size(mount_dir):
-    # 此方法有问题，如果没有挂载则无法获取正确的磁盘大小
+def get_disk_size(disk_dir):
+    """
+    获取lvm分区大小
+    """
     size = 0
-    cmd = "df -Plh %s | tail -n 1" % mount_dir
-    ret, output = shell_cmd(cmd, need_out=True)
+    cmd = "lvdisplay %s --units h | grep 'LV Size'" % disk_dir
+    _, output = shell_cmd(cmd, need_out=True)
+    size = re.search("LV Size(.*?)GiB", output).group(1)
 
-    if ret != 0:
-        logger.error("the dir: %s is not exist" % mount_dir)
-    else:
-        output = output.strip().split()
-        size = int(output[1].strip("G"))
-
-    return size
+    return float(size.strip())
 
 def get_block_size(block_dev):
     """
@@ -139,33 +143,18 @@ def is_large_disk(disk_size):
     else:
         return False
 
-def is_disk_type_same(disk_dir, disk_type):
-    cmd = "df -Plh %s | tail -n 1" % disk_dir
+def is_disk_type_same(disk_dir):
+    cmd = "lvdisplay %s" % disk_dir
     ret, output = shell_cmd(cmd, need_out=True)
 
     if ret != 0:
         logger.error("the dir: %s is not exist" % disk_dir)
     else:
-        block_dev = output.strip().split()[0]
-        cmd = "lsblk %s | tail -n 1" % block_dev
-        _, output = shell_cmd(cmd, need_out=True)
-        ttype = output.strip().split()[5]
-        return True if ttype == disk_type else False
+        for line in output.strip().split():
+            if ("Cannot process volume" in line) or ("Failed to find" in line):
+                return False
 
-    return False
-
-# TODO(wzy): 不准确
-def is_cache_enabled(disk_dir):
-    cmd = "df -Plh %s | tail -n 1" % disk_dir
-    ret, output = shell_cmd(cmd, need_out=True)
-
-    if ret != 0:
-        logger.error("the dir: %s is not exist" % disk_dir)
-    else:
-        output = output = output.strip().split()
-        return True if "cache" in output[0] else False
-
-    return False
+    return True
 
 def is_disk_size_same(size1, size2):
     if abs(size1 - size2) > DISK_SIZE_LIMIT:

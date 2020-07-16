@@ -37,6 +37,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void switch_faults()'
   print '  bool ready_to_sync(i32 res_num)'
   print '   get_ha_info()'
+  print '  string get_hostname()'
   print ''
   sys.exit(0)
 
@@ -171,6 +172,12 @@ elif cmd == 'get_ha_info':
     print 'get_ha_info requires 0 args'
     sys.exit(1)
   pp.pprint(client.get_ha_info())
+
+elif cmd == 'get_hostname':
+  if len(args) != 0:
+    print 'get_hostname requires 0 args'
+    sys.exit(1)
+  pp.pprint(client.get_hostname())
 
 else:
   print 'Unrecognized method %s' % cmd

@@ -8,6 +8,7 @@
 from constant import HA_PREPARE_RESULT, HA_SETUP_RESULT
 from tools import (get_disk_info_from_cfg,
                    get_disk_size,
+                   get_block_size,
                    is_disk_size_same,
                    is_disk_type_same,
                    is_content_supported,
@@ -30,21 +31,24 @@ class DiskManager(object):
             print("disk content is %s", disc.content)
 
             mount_dir = get_disk_info_from_cfg(disc.storage_name, "path")
+            disk_cache = get_disk_info_from_cfg(disc.storage_name, "cache")
 
-            # TODO(wzy)：磁盘盘符不一致，是否认为不能建立高可用？
             if mount_dir == "":
                 # 存储池名称不一致
                 result[disc.storage_name] = HA_PREPARE_RESULT.STORAGE_NAME_DIFF
                 continue
 
-            if not is_disk_type_same(mount_dir, disc.type):
+            if not is_disk_type_same(disc.volume_name):
                 # 磁盘的类型不一致（没有启用lvm）
                 result[disc.storage_name] = HA_PREPARE_RESULT.DISK_TYPE_NOT_LVM
                 continue
 
-            # TODO(wzy): 检查磁盘缓存是否开启(在perl中进行判断？storage.cfg中有关于bcache的信息？后续待确认)
+            if disk_cache:
+                # 启用了磁盘缓存
+                result[disc.storage_name] = HA_PREPARE_RESULT.DISK_CACHE_ENABLED
+                continue
 
-            size = get_disk_size(mount_dir)
+            size = get_disk_size(disc.volume_name)
 
             if not is_disk_size_same(size, disc.size):
                 # 磁盘大小不一致

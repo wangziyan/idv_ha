@@ -14,6 +14,7 @@ from drbd_mgr import DrbdManager
 from disk_mgr import DiskManager
 from log import logger
 from remote import Remote
+from tools import get_local_hostname
 
 class ProcessHandler(object):
     def __init__(self):
@@ -108,3 +109,8 @@ class ProcessHandler(object):
         logger.info("server get idv info from perl")
         print("server get idv info from perl")
         return self.__drbd_mgr.get_ha_info()
+
+    def get_hostname(self):
+        logger.info("remote server get hostname")
+        print("remote server get hostname")
+        return get_local_hostname()

@@ -31,7 +31,7 @@ class DiskInfo:
     None, # 0
     (1, TType.STRING, 'storage_name', None, None, ), # 1
     (2, TType.STRING, 'volume_name', None, None, ), # 2
-    (3, TType.I32, 'size', None, None, ), # 3
+    (3, TType.DOUBLE, 'size', None, None, ), # 3
     (4, TType.STRING, 'type', None, None, ), # 4
     (5, TType.STRING, 'content', None, None, ), # 5
   )
@@ -63,8 +63,8 @@ class DiskInfo:
         else:
           iprot.skip(ftype)
       elif fid == 3:
-        if ftype == TType.I32:
-          self.size = iprot.readI32();
+        if ftype == TType.DOUBLE:
+          self.size = iprot.readDouble();
         else:
           iprot.skip(ftype)
       elif fid == 4:
@@ -96,8 +96,8 @@ class DiskInfo:
       oprot.writeString(self.volume_name)
       oprot.writeFieldEnd()
     if self.size is not None:
-      oprot.writeFieldBegin('size', TType.I32, 3)
-      oprot.writeI32(self.size)
+      oprot.writeFieldBegin('size', TType.DOUBLE, 3)
+      oprot.writeDouble(self.size)
       oprot.writeFieldEnd()
     if self.type is not None:
       oprot.writeFieldBegin('type', TType.STRING, 4)

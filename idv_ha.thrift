@@ -3,7 +3,7 @@ namespace perl OVP.IDVHa
 struct DiskInfo{
     1:string storage_name;  // 存储池名称
     2:string volume_name;   // 块设备名称
-    3:i32 size;             // 磁盘大小(单位是G)
+    3:double size;          // 磁盘大小(单位是G)
     4:string type;          // 磁盘类型(是否为lvm)
     5:string content;       // 磁盘内容的类型(ISO镜像,VDI模板,VDI镜像,IDV镜像,备份文件)
 }
@@ -67,5 +67,7 @@ service Ha{
     bool ready_to_sync(1:i32 res_num)
 
     // 获取idv高可用配置信息
-    map<string, string> get_ha_info();
+    map<string, string> get_ha_info()
+
+    string get_hostname()
 }
