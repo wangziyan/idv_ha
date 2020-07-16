@@ -8,7 +8,7 @@
 import os
 import json
 
-from constant import IDV_HA_CONF, IDV_HA_CONF_PATH, DRBD_CONF
+from constant import IDV_HA_CONF, IDV_HA_CONF_PATH, DRBD_CONF, STORAGE_MOUNT
 from log import logger
 
 def is_file_exist(filename):
@@ -99,3 +99,39 @@ def save_conf(filename, data):
                 json.dump(data, j_file, indent=4)
         except Exception as e:
             logger.error("server save_conf error:%s" % e)
+
+def disable_auto_mount(storage):
+    """
+    禁用AVD Server自动挂载目录
+    """
+    if is_file_exist(STORAGE_MOUNT):
+        mount_dir = ""
+        try:
+            with open(STORAGE_MOUNT, "r") as f:
+                for line in f:
+                    if storage in line:
+                        line = line.replace("mount", "#mount")
+                    mount_dir += line
+
+            with open(STORAGE_MOUNT, "w") as f:
+                f.write(mount_dir)
+        except Exception as e:
+            logger.error("disable auto mount error:%s" % e)
+
+def enable_auto_mount(storage):
+    """
+    启用AVD Server自动挂载目录
+    """
+    if is_file_exist(STORAGE_MOUNT):
+        mount_dir = ""
+        try:
+            with open(STORAGE_MOUNT, "r") as f:
+                for line in f:
+                    if storage in line:
+                        line = line.replace("#mount", "mount")
+                    mount_dir += line
+
+            with open(STORAGE_MOUNT, "w") as f:
+                f.write(mount_dir)
+        except Exception as e:
+            logger.error("enable auto mount error:%s" % e)
