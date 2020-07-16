@@ -22,10 +22,13 @@ AVDS_LOG_PATH = "/thinputer/log/"
 IDV_HA_LOG_NAME = "idv_ha.log"
 IDV_HA_LOG_PATH = AVDS_LOG_PATH + IDV_HA_LOG_NAME
 
-# 存储池文件
+# 存储池配置文件
 STORAGE_CONF = "/etc/ovp/storage.cfg"
-# 两端磁盘大小差异不能超过10G
-DISK_SIZE_LIMIT = 10
+# 存储池挂载目录文件
+STORAGE_MOUNT = "/etc/ovp-config/storage-mount.cfg"
+
+# 两端磁盘大小差异不能超过5G
+DISK_SIZE_LIMIT = 5
 
 class HA_PREPARE_RESULT(object):
     SUCCESS = 0                 # 可以建立
