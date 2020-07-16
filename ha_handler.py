@@ -62,8 +62,7 @@ class ProcessHandler(object):
 
         # 等待对端是否完成了同步准备工作，然后开始同步
         for _ in range(3):
-            # TODO 缺少参数 addr
-            if Remote.ready_to_sync():
+            if Remote.ready_to_sync(net.backup_ip, res_num):
                 self.__drbd_mgr.force_primary_resource(res_num)
                 result = HA_SETUP_RESULT.SUCCESS
                 break
@@ -82,8 +81,7 @@ class ProcessHandler(object):
 
         return result
 
-    # TODO(wzy): 是否准备好建立IDV_HA，条件是元数据创建成功，目录没有挂载
-    def read_to_sync(self, res_num):
+    def ready_to_sync(self, res_num):
         return self.__drbd_mgr.is_ready_to_sync(res_num)
 
     # TODO(wzy): drbd的健康状态检测
