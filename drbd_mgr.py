@@ -32,7 +32,8 @@ from log import logger
 from tools import (shell_cmd,
                    get_disk_info_from_cfg,
                    get_block_size,
-                   is_large_disk)
+                   is_large_disk,
+                   get_storage_name)
 from utility import (is_idv_ha_enabled,
                      get_drbd_conf,
                      get_idv_ha_conf,
@@ -50,18 +51,18 @@ class Drbd(object):
         self.is_primary = None
         self.res_num = resource_num
         self.is_metadata_ready = None
-        self.is_unmount = None  # TODO(wzy): 还没有使用到
+        self.is_umount = True # temporary useless
         self.fs_type = None
 
         self.role = DrbdRole.unknown
         self.cstate = DrbdConnState.unknown
-        self.dstate = DrbdDiskState.d_unknown
+        self.dstate = DrbdDiskState.unknown
         self.rstate = DrbdRState.unknown
         self.progress = "0"
 
         # 初始化有两种情况，开机读取配置文件以及新建立IDV_HA的DRBD对象
         # TODO(wzy): status 需要明确具体的含义是什么
-        if not resource_conf:
+        if resource_conf:
             self.back_device = resource_conf.get("drbd_back_device", "/dev/mapper/idvha-%s" % (self.res_num))
             self.drbd_dev = resource_conf.get("drbd_dev", "/dev/drbd%s" % (self.res_num))
             self.port = str(7789 + int(self.res_num))
@@ -75,8 +76,7 @@ class Drbd(object):
             self.port = str(7789 + int(self.res_num))
             self.res_name = "r%s" % (self.res_num)
             self.res_path = "/etc/drbd.d/r%s.res" % (self.res_num)
-            # TODO(wzy): 可能会出现异常无法获取？
-            self.storage_dir = get_disk_info_from_cfg(STORAGE_CONF, "path")  # 从storage.cfg中获取挂载目录
+            self.storage_dir = None
             self.status = DrbdState.SUCCESS
 
         self.mount_cmd = self.init_cmd_shell()
@@ -94,8 +94,9 @@ class Drbd(object):
         self.secondary_addr = net_info.backup_ip
         self.secondary_host = drbd_info.secondary_host
         self.is_primary = is_primary
-        self.port = str(drbd_info.port)
+        self.port = str(drbd_info.port_num)
         self.back_device = drbd_info.block_dev
+        self.storage_dir = get_disk_info_from_cfg(get_storage_name(self.back_device), "path")  # 从storage.cfg中获取挂载目录
         # TODO(wzy):role是否更新，还是等待定时器自动获取
         self.role = DrbdRole.primary if is_primary else DrbdRole.secondary
 
@@ -137,7 +138,7 @@ class Drbd(object):
     def get_cstate(self):
         cmd = "drbdadm cstate %s" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
-        c_state = DrbdConnState.d_unknown
+        c_state = DrbdConnState.unknown
 
         try:
             c_state = output.strip()
@@ -149,7 +150,7 @@ class Drbd(object):
     def get_dstate(self):
         cmd = "drbdadm dstate %s" % self.res_name
         _, output = shell_cmd(cmd, need_out=True)
-        d_state = DrbdDiskState.d_unknown
+        d_state = DrbdDiskState.unknown
 
         try:
             d_state = output.split('\n')[0].split("/")[0]
@@ -236,21 +237,24 @@ class Drbd(object):
 
     def create_drbd_meta_data(self):
         cmd = '''
-                drbdadm create-md %s << EOF
-                yes
-                yes
-                EOF
-                ''' % (self.resource)
+drbdadm create-md %s << EOF
+yes
+yes
+EOF
+''' % (self.res_name)
 
         ret, output = shell_cmd(cmd, need_out=True)
 
         # TODO(wzy): 创建元数据前清除了文件系统，所以还会出现哪些创建失败的情况不清楚
+        # res文件会有一些判断，不符合将会报错
         if ret != SUCCESS:
             self.status = DrbdState.INIT_FAILED
             logger.error("drbd create meta data failed: %s" % output)
         else:
             self.status = DrbdState.SUCCESS
             logger.info("drbd create meta data success")
+
+        return self.status
 
     def update_drbd_info(self):
         self.cstate = self.get_cstate()
@@ -305,7 +309,8 @@ class DrbdManager(object):
         self.all_change_dir = []
         self.in_update_time = 0
 
-        self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
+        # temporary
+        # self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
 
     def prepare(self):
         if is_idv_ha_enabled():
@@ -420,7 +425,7 @@ class DrbdManager(object):
             drbd_conf[res_num] = OrderedDict()
             drbd_conf[res_num]["drbd_back_device"] = drbd.back_device
             drbd_conf[res_num]["drdb_dev"] = drbd.drbd_dev
-            drbd_conf[res_num]["port"] = int(drbd.port)
+            drbd_conf[res_num]["port"] = drbd.port
             drbd_conf[res_num]["resource_name"] = drbd.res_name
             drbd_conf[res_num]["resource_path"] = drbd.res_path
             drbd_conf[res_num]["storage_dir"] = drbd.storage_dir
@@ -479,16 +484,29 @@ class DrbdManager(object):
         drbd.create_drbd_resource_file()
         # 擦除文件系统
         drbd.wipe_fs()
+
         # 创建drbd元数据
-        drbd.create_drbd_meta_data()
+        if not drbd.create_drbd_meta_data():
+            return drbd.status
+
         # 启用drbd资源
-        drbd.up_resource()
+        if not drbd.up_resource():
+            return drbd.status
+
         self.drbd_lists.append(drbd)
         # 把drbd信息写入配置文件
         self.save_drbd_conf()
 
+        return drbd.status
+
+    def update_mount(self, res_num):
+        for drbd in self.drbd_lists:
+            if res_num == drbd.res_num:
+                drbd.is_umount = True
+
     def is_drbd_meta_data_exist(self, res_num, block_dev, version="v09", meta_type="internal"):
         result = False
+        res_num = "r" + str(res_num)
         cmd = "drbdmeta %s %s %s %s dstate" % (res_num, version, block_dev, meta_type)
         ret, output = shell_cmd(cmd, need_out=True)
 
@@ -506,7 +524,7 @@ class DrbdManager(object):
     def is_ready_to_sync(self, res_num):
         for drbd in self.drbd_lists:
             if res_num == drbd.res_num:
-                if drbd.is_metadata_ready and drbd.is_unmount:
+                if drbd.is_metadata_ready and drbd.is_umount:
                     return True
 
         return False
@@ -519,6 +537,7 @@ class DrbdManager(object):
         print("node name:" + drbd_info.node)
         print("block dev:" + drbd_info.block)
         res_num = drbd_info.res_num
+        status = None
 
         # 读取drbd配置文件
         drbd_conf = get_drbd_conf()
@@ -534,11 +553,19 @@ class DrbdManager(object):
                     drbd.update_drbd_resource()
                     # 启用资源
                     drbd.up_resource()
+                    status = drbd.status
+
+                    # 非成功状态直接返回
+                    if not status:
+                        return status
+
                     self.drbd_lists.append(drbd)
                     break
 
         # 保存配置到drbd.conf
         self.save_drbd_conf()
+
+        return status
 
     def force_primary_resource(self, res_num):
         for drbd in self.drbd_lists:

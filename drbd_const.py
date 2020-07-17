@@ -24,7 +24,7 @@ class DrbdDiskState(object):
     inconsistent = "Inconsistent"
     diskless = "Diskless"
     negotiating = "Negotiating"
-    d_unknown = "DUnknown"
+    unknown = "DUnknown"
 
 class DrbdConnState(object):
     connected = "Connected"

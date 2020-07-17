@@ -36,29 +36,44 @@ class ProcessHandler(object):
     def prepared(self, disks):
         # 检测是否具备开启idv ha的条件
         logger.info("server recv idv_ha_prepared")
-        return self.__disk_mgr.is_disk_matched(disks)
+        return self.__disk_mgr.is_well_prepared(disks)
 
-    # TODO(wzy): 建立高可用
     def setup(self, net, drbd, is_master, is_force=False):
         logger.info("server recv setup_idv_ha")
         result = None
+        print("net vip is %s" % net.vip)
+        print("net rid is %s" % net.rid)
+        print("net master_ip is %s" % net.master_ip)
+        print("net backup_ip is %s" % net.backup_ip)
+        print("drbd res_num is %s" % drbd.res_num)
+        print("drbd port_num is %s" % drbd.port_num)
+        print("drbd primary_host is %s" % drbd.primary_host)
+        print("drbd secondary_host is %s" % drbd.secondary_host)
+        print("drbd block_dev is %s" % drbd.block_dev)
 
         block_dev = drbd.block_dev
         res_num = drbd.res_num
 
         # 如果目录已经挂载需要先取消挂载，如果是主节点的话之后要再次挂载
-        if not self.__disk_mgr.try_umount(block_dev):
-            # 取消挂载失败，判断是因为哪种原因的失败，并返回结果
-            result = self.__disk_mgr.umount_failed_reason(block_dev)
-            return result
+        # if not self.__disk_mgr.try_umount(block_dev):
+        #    return HA_SETUP_RESULT.UMOUNT_ERROR
+        # else:
+        #    # 更新drbd mgr中可挂载的状态
+        # self.__drbd_mgr.update_mount(res_num)
 
         # 判断是否存在drbd元数据
         if self.__drbd_mgr.is_drbd_meta_data_exist(res_num, block_dev):
             # 若存在,更新drbd资源文件,恢复建立连接
-            self.__drbd_mgr.update_and_recovery(net, drbd, is_master)
+            result = self.__drbd_mgr.update_and_recovery(net, drbd, is_master)
+            if result:
+                # TODO(wzy)：失败的话需要重新恢复服务，挂载？
+                return HA_SETUP_RESULT.INIT_ERROR
         else:
             # 否则就属于首次建立
-            self.__drbd_mgr.init_drbd(net, drbd, is_master)
+            result = self.__drbd_mgr.init_drbd(net, drbd, is_master)
+            if result:
+                # TODO(wzy)：失败的话需要重新恢复服务，挂载？
+                return HA_SETUP_RESULT.INIT_ERROR
 
         # 等待对端是否完成了同步准备工作，然后开始同步
         for _ in range(3):
@@ -78,6 +93,7 @@ class ProcessHandler(object):
         self.__drbd_mgr.start_multi_services()
         # 保存信息到配置文件
         self.__drbd_mgr.save_idv_ha_conf(net, drbd, is_master, True)
+        # TODO(wzy)：接管storage-mount.cfg来挂载文件
 
         return result
 

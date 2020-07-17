@@ -19,7 +19,7 @@ class DiskManager(object):
     def __init__(self):
         pass
 
-    def is_disk_matched(self, disks):
+    def is_well_prepared(self, disks):
         # 判断磁盘条件是否具备
         result = {}
 
@@ -60,13 +60,18 @@ class DiskManager(object):
                 result[disc.storage_name] = HA_PREPARE_RESULT.DISK_CONTENT_NOT_SUP
                 continue
 
+            if not self.try_umount(disc.volume_name):
+                # 取消挂载失败，目录被占用
+                result[disc.storage_name] = HA_PREPARE_RESULT.DISK_BUSY
+                continue
+
             result[disc.storage_name] = HA_PREPARE_RESULT.SUCCESS
 
         return result
 
     def try_umount(self, block_dev):
         # TODO(wzy): 先关闭ovp-idv、smb服务,最后要记得再次开启
-        # TODO(wzy): 还有可能因为共享目录开启占用，导致无法unmount
+        # TODO(wzy): 还有可能因为共享目录开启占用，导致无法umount
         cmd_stop_service = "systemctl stop ovp-idv smb"
         shell_cmd(cmd_stop_service)
         cmd_umount = "umount -f %s" % block_dev
@@ -77,11 +82,11 @@ class DiskManager(object):
             return True
         else:
             # 如果取消挂载失败，再次开启ovp-idv服务
-            cmd_start_service = "systemctl start ovp-idv"
+            cmd_start_service = "systemctl start ovp-idv smb"
             shell_cmd(cmd_start_service)
             logger.error("try umount failed output is %s" % output)
             return False
 
     def umount_failed_reason(self, block_dev):
-        # TODO(wzy): 取消挂载失败的原因 是因为虚拟机有启动还是idv打开的镜像没有关闭
+        # TODO(wzy): 取消挂载失败的原因 是因为虚拟机有启动还是idv打开的镜像没有关闭 暂时不用了
         return HA_SETUP_RESULT.VM_STARTED

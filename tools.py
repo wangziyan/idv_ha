@@ -87,6 +87,10 @@ def get_vip(interface):
     else:
         return
 
+def get_storage_name(block):
+    storage = re.search("idvha.(.*?)-data", block).group(1)
+    return storage
+
 def get_disk_info_from_cfg(disk_name, value):
     logger.debug("into get_disk_info_from_cfg get %s %s" % (disk_name, value))
     result = ''

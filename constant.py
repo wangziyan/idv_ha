@@ -39,11 +39,12 @@ class HA_PREPARE_RESULT(object):
     DISK_CACHE_ENABLED = 5      # 已经开启了磁盘缓存
     DISK_SIZE_NOT_SAME = 6      # 磁盘大小不一致
     DISK_CONTENT_NOT_SUP = 7    # 存储池内容有不支持的项
+    DISK_BUSY = 8               # 磁盘被占用无法取消挂载
 
 class HA_SETUP_RESULT(object):
     SUCCESS = 0              # 建立成功
-    VM_STARTED = 1           # 有开启的虚拟机
-    IDV_TEMPLATE_OPENED = 2  # 有IDV镜像已经打开了
+    UMOUNT_ERROR = 1         # 取消挂载失败 useless
+    INIT_ERROR = 2           # 初始化失败
     FS_EXIST = 3             # 仍有数据，需要清空
     THRIFT_ERROR = 4         # Thrift请求出现问题
     ERROR_5 = 5
