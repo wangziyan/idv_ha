@@ -19,7 +19,8 @@ from constant import (DRBD_CONF,
                       IDV_HA_CONF,
                       SUCCESS,
                       DRBD_PRIMARY_FAILED,
-                      DRBD_SECONDARY_FAILED)
+                      DRBD_SECONDARY_FAILED,
+                      HA_REMOVE_RESULT)
 from drbd_const import (DrbdState,
                         DrbdConnState,
                         DrbdDiskState,
@@ -319,7 +320,7 @@ class DrbdManager(object):
     def __init__(self):
         self.drbd_lists = []
         self.primary_addr = None
-        self.secondary = None
+        self.secondary_addr = None
         self.is_primary = None
         self.is_local = False
         self.drbd_prepare_ready = False
@@ -509,6 +510,8 @@ class DrbdManager(object):
         return True
 
     def init_drbd(self, net_info, drbd_info, is_primary):
+        self.primary_addr = net_info.master_ip
+        self.secondary_addr = net_info.backup_ip
         # 创建DRBD对象
         drbd = Drbd(drbd_info.res_num)
         drbd.update(net_info, drbd_info, is_primary)
@@ -569,6 +572,8 @@ class DrbdManager(object):
         print("node1 name:" + drbd_info.primary_host)
         print("node2 name:" + drbd_info.secondary_host)
         print("block dev:" + drbd_info.block_dev)
+        self.primary_addr = net_info.master_ip
+        self.secondary_addr = net_info.backup_ip
         res_num = drbd_info.res_num
         status = None
 
@@ -672,9 +677,16 @@ class DrbdManager(object):
     def get_drbd_list(self):
         return self.drbd_lists
 
+    def get_remote_ip(self):
+        return self.secondary_addr
+
     def remove(self, is_master):
         for drbd in self.drbd_lists:
-            drbd.down_resource()
+            if not drbd.down_resource():
+                if is_master:
+                    return HA_REMOVE_RESULT.DOWN_RES_ERROR
+                else:
+                    return HA_REMOVE_RESULT.REMOTE_DOWN_RES_ERROR
             drbd.drbd_dev = drbd.back_device
             drbd.mount_cmd = drbd.init_cmd_shell()
 
@@ -685,4 +697,4 @@ class DrbdManager(object):
         self.stop_drbd_service()
         self.drbd_lists.clear()
 
-        return SUCCESS
+        return HA_REMOVE_RESULT.SUCCESS

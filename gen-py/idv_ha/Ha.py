@@ -43,14 +43,18 @@ class Iface:
     """
     pass
 
-  def amend(self, net):
+  def modify(self, net):
     """
     Parameters:
      - net
     """
     pass
 
-  def remove(self):
+  def remove(self, is_master):
+    """
+    Parameters:
+     - is_master
+    """
     pass
 
   def report_disk_error_info(self, disk):
@@ -200,43 +204,48 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "setup failed: unknown result");
 
-  def amend(self, net):
+  def modify(self, net):
     """
     Parameters:
      - net
     """
-    self.send_amend(net)
-    return self.recv_amend()
+    self.send_modify(net)
+    return self.recv_modify()
 
-  def send_amend(self, net):
-    self._oprot.writeMessageBegin('amend', TMessageType.CALL, self._seqid)
-    args = amend_args()
+  def send_modify(self, net):
+    self._oprot.writeMessageBegin('modify', TMessageType.CALL, self._seqid)
+    args = modify_args()
     args.net = net
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_amend(self):
+  def recv_modify(self):
     (fname, mtype, rseqid) = self._iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
       x.read(self._iprot)
       self._iprot.readMessageEnd()
       raise x
-    result = amend_result()
+    result = modify_result()
     result.read(self._iprot)
     self._iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "amend failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "modify failed: unknown result");
 
-  def remove(self):
-    self.send_remove()
+  def remove(self, is_master):
+    """
+    Parameters:
+     - is_master
+    """
+    self.send_remove(is_master)
     return self.recv_remove()
 
-  def send_remove(self):
+  def send_remove(self, is_master):
     self._oprot.writeMessageBegin('remove', TMessageType.CALL, self._seqid)
     args = remove_args()
+    args.is_master = is_master
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -542,7 +551,7 @@ class Processor(Iface, TProcessor):
     self._processMap["prepared"] = Processor.process_prepared
     self._processMap["created_with_others"] = Processor.process_created_with_others
     self._processMap["setup"] = Processor.process_setup
-    self._processMap["amend"] = Processor.process_amend
+    self._processMap["modify"] = Processor.process_modify
     self._processMap["remove"] = Processor.process_remove
     self._processMap["report_disk_error_info"] = Processor.process_report_disk_error_info
     self._processMap["drbd_health_check"] = Processor.process_drbd_health_check
@@ -604,13 +613,13 @@ class Processor(Iface, TProcessor):
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
-  def process_amend(self, seqid, iprot, oprot):
-    args = amend_args()
+  def process_modify(self, seqid, iprot, oprot):
+    args = modify_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = amend_result()
-    result.success = self._handler.amend(args.net)
-    oprot.writeMessageBegin("amend", TMessageType.REPLY, seqid)
+    result = modify_result()
+    result.success = self._handler.modify(args.net)
+    oprot.writeMessageBegin("modify", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -620,7 +629,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = remove_result()
-    result.success = self._handler.remove()
+    result.success = self._handler.remove(args.is_master)
     oprot.writeMessageBegin("remove", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -1176,7 +1185,7 @@ class setup_result:
   def __ne__(self, other):
     return not (self == other)
 
-class amend_args:
+class modify_args:
   """
   Attributes:
    - net
@@ -1214,7 +1223,7 @@ class amend_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('amend_args')
+    oprot.writeStructBegin('modify_args')
     if self.net is not None:
       oprot.writeFieldBegin('net', TType.STRUCT, 1)
       self.net.write(oprot)
@@ -1237,7 +1246,7 @@ class amend_args:
   def __ne__(self, other):
     return not (self == other)
 
-class amend_result:
+class modify_result:
   """
   Attributes:
    - success
@@ -1273,7 +1282,7 @@ class amend_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('amend_result')
+    oprot.writeStructBegin('modify_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.I32, 0)
       oprot.writeI32(self.success)
@@ -1297,9 +1306,18 @@ class amend_result:
     return not (self == other)
 
 class remove_args:
+  """
+  Attributes:
+   - is_master
+  """
 
   thrift_spec = (
+    None, # 0
+    (1, TType.BOOL, 'is_master', None, None, ), # 1
   )
+
+  def __init__(self, is_master=None,):
+    self.is_master = is_master
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1310,6 +1328,11 @@ class remove_args:
       (fname, ftype, fid) = iprot.readFieldBegin()
       if ftype == TType.STOP:
         break
+      if fid == 1:
+        if ftype == TType.BOOL:
+          self.is_master = iprot.readBool();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1320,6 +1343,10 @@ class remove_args:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('remove_args')
+    if self.is_master is not None:
+      oprot.writeFieldBegin('is_master', TType.BOOL, 1)
+      oprot.writeBool(self.is_master)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 

@@ -55,6 +55,7 @@ class HA_REMOVE_RESULT(object):
     SUCCESS = 0                 # 移除成功
     UMOUNT_ERROR = 1            # 取消挂载失败
     DOWN_RES_ERROR = 2          # 资源关闭失败
+    REMOTE_DOWN_RES_ERROR = 12  # 远程资源关闭失败
 
 ####################################Drbd State####################################
 SUCCESS = 0

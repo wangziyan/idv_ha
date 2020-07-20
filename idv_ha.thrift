@@ -43,7 +43,7 @@ service Ha{
     // 修改idv高可用服务
     i32 modify(1:NetInfo net)
     // 删除idv高可用服务
-    i32 remove(1:string addr, 2:bool is_master)
+    i32 remove(1:bool is_master)
 
     // 备节点汇报磁盘错误信息
     i32 report_disk_error_info(1:list<DiskInfo> disk)

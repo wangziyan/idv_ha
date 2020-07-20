@@ -8,7 +8,7 @@
 from threading import Thread
 from time import sleep
 
-from constant import HA_SETUP_RESULT
+from constant import HA_SETUP_RESULT, HA_REMOVE_RESULT
 from drbd import DrbdTask
 from drbd_mgr import DrbdManager
 from disk_mgr import DiskManager
@@ -103,7 +103,7 @@ class ProcessHandler(object):
     def modify(self, net):
         pass
 
-    def remove(self, addr, is_master):
+    def remove(self, is_master):
         logger.info("server recv remove idv ha")
         result = None
         remote_result = None
@@ -111,11 +111,12 @@ class ProcessHandler(object):
         if is_master:
             drbd_lists = self.__drbd_mgr.get_drbd_list()
             for drbd in drbd_lists:
-                if self.__disk_mgr.try_umount(drbd.drbd_dev):
-                    return result
+                if not self.__disk_mgr.try_umount(drbd.drbd_dev):
+                    return HA_REMOVE_RESULT.UMOUNT_ERROR
 
         if is_master:
-            remote_result = Remote.remote_remove(addr, not is_master)
+            remote_ip = self.__drbd_mgr.get_remote_ip()
+            remote_result = Remote.remote_remove(remote_ip, not is_master)
 
         if is_master and remote_result:
             return remote_result

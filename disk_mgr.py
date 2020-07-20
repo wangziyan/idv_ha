@@ -86,7 +86,3 @@ class DiskManager(object):
             shell_cmd(cmd_start_service)
             logger.error("try umount failed output is %s" % output)
             return False
-
-    def umount_failed_reason(self, block_dev):
-        # TODO(wzy): 取消挂载失败的原因 是因为虚拟机有启动还是idv打开的镜像没有关闭 暂时不用了
-        return HA_SETUP_RESULT.VM_STARTED

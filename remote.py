@@ -65,7 +65,7 @@ class Remote(object):
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
             client = Ha.Client(protocol)
             transport.open()
-            result = client.remove(addr, is_master)
+            result = client.remove(is_master)
         except (TException, Exception) as e:
             result = 1
             logger.exception("client %s", e)

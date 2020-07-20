@@ -505,9 +505,9 @@ sub write {
   return $xfer;
 }
 
-package OVP::IDVHa::Ha_amend_args;
+package OVP::IDVHa::Ha_modify_args;
 use base qw(Class::Accessor);
-OVP::IDVHa::Ha_amend_args->mk_accessors( qw( net ) );
+OVP::IDVHa::Ha_modify_args->mk_accessors( qw( net ) );
 
 sub new {
   my $classname = shift;
@@ -523,7 +523,7 @@ sub new {
 }
 
 sub getName {
-  return 'Ha_amend_args';
+  return 'Ha_modify_args';
 }
 
 sub read {
@@ -559,7 +559,7 @@ sub read {
 sub write {
   my ($self, $output) = @_;
   my $xfer   = 0;
-  $xfer += $output->writeStructBegin('Ha_amend_args');
+  $xfer += $output->writeStructBegin('Ha_modify_args');
   if (defined $self->{net}) {
     $xfer += $output->writeFieldBegin('net', TType::STRUCT, 1);
     $xfer += $self->{net}->write($output);
@@ -570,9 +570,9 @@ sub write {
   return $xfer;
 }
 
-package OVP::IDVHa::Ha_amend_result;
+package OVP::IDVHa::Ha_modify_result;
 use base qw(Class::Accessor);
-OVP::IDVHa::Ha_amend_result->mk_accessors( qw( success ) );
+OVP::IDVHa::Ha_modify_result->mk_accessors( qw( success ) );
 
 sub new {
   my $classname = shift;
@@ -588,7 +588,7 @@ sub new {
 }
 
 sub getName {
-  return 'Ha_amend_result';
+  return 'Ha_modify_result';
 }
 
 sub read {
@@ -623,7 +623,7 @@ sub read {
 sub write {
   my ($self, $output) = @_;
   my $xfer   = 0;
-  $xfer += $output->writeStructBegin('Ha_amend_result');
+  $xfer += $output->writeStructBegin('Ha_modify_result');
   if (defined $self->{success}) {
     $xfer += $output->writeFieldBegin('success', TType::I32, 0);
     $xfer += $output->writeI32($self->{success});
@@ -636,11 +636,18 @@ sub write {
 
 package OVP::IDVHa::Ha_remove_args;
 use base qw(Class::Accessor);
+OVP::IDVHa::Ha_remove_args->mk_accessors( qw( is_master ) );
 
 sub new {
   my $classname = shift;
   my $self      = {};
   my $vals      = shift || {};
+  $self->{is_master} = undef;
+  if (UNIVERSAL::isa($vals,'HASH')) {
+    if (defined $vals->{is_master}) {
+      $self->{is_master} = $vals->{is_master};
+    }
+  }
   return bless ($self, $classname);
 }
 
@@ -663,6 +670,12 @@ sub read {
     }
     SWITCH: for($fid)
     {
+      /^1$/ && do{      if ($ftype == TType::BOOL) {
+        $xfer += $input->readBool(\$self->{is_master});
+      } else {
+        $xfer += $input->skip($ftype);
+      }
+      last; };
         $xfer += $input->skip($ftype);
     }
     $xfer += $input->readFieldEnd();
@@ -675,6 +688,11 @@ sub write {
   my ($self, $output) = @_;
   my $xfer   = 0;
   $xfer += $output->writeStructBegin('Ha_remove_args');
+  if (defined $self->{is_master}) {
+    $xfer += $output->writeFieldBegin('is_master', TType::BOOL, 1);
+    $xfer += $output->writeBool($self->{is_master});
+    $xfer += $output->writeFieldEnd();
+  }
   $xfer += $output->writeFieldStop();
   $xfer += $output->writeStructEnd();
   return $xfer;
@@ -1873,6 +1891,162 @@ sub write {
   return $xfer;
 }
 
+package OVP::IDVHa::Ha_get_drbd_state_args;
+use base qw(Class::Accessor);
+
+sub new {
+  my $classname = shift;
+  my $self      = {};
+  my $vals      = shift || {};
+  return bless ($self, $classname);
+}
+
+sub getName {
+  return 'Ha_get_drbd_state_args';
+}
+
+sub read {
+  my ($self, $input) = @_;
+  my $xfer  = 0;
+  my $fname;
+  my $ftype = 0;
+  my $fid   = 0;
+  $xfer += $input->readStructBegin(\$fname);
+  while (1) 
+  {
+    $xfer += $input->readFieldBegin(\$fname, \$ftype, \$fid);
+    if ($ftype == TType::STOP) {
+      last;
+    }
+    SWITCH: for($fid)
+    {
+        $xfer += $input->skip($ftype);
+    }
+    $xfer += $input->readFieldEnd();
+  }
+  $xfer += $input->readStructEnd();
+  return $xfer;
+}
+
+sub write {
+  my ($self, $output) = @_;
+  my $xfer   = 0;
+  $xfer += $output->writeStructBegin('Ha_get_drbd_state_args');
+  $xfer += $output->writeFieldStop();
+  $xfer += $output->writeStructEnd();
+  return $xfer;
+}
+
+package OVP::IDVHa::Ha_get_drbd_state_result;
+use base qw(Class::Accessor);
+OVP::IDVHa::Ha_get_drbd_state_result->mk_accessors( qw( success ) );
+
+sub new {
+  my $classname = shift;
+  my $self      = {};
+  my $vals      = shift || {};
+  $self->{success} = undef;
+  if (UNIVERSAL::isa($vals,'HASH')) {
+    if (defined $vals->{success}) {
+      $self->{success} = $vals->{success};
+    }
+  }
+  return bless ($self, $classname);
+}
+
+sub getName {
+  return 'Ha_get_drbd_state_result';
+}
+
+sub read {
+  my ($self, $input) = @_;
+  my $xfer  = 0;
+  my $fname;
+  my $ftype = 0;
+  my $fid   = 0;
+  $xfer += $input->readStructBegin(\$fname);
+  while (1) 
+  {
+    $xfer += $input->readFieldBegin(\$fname, \$ftype, \$fid);
+    if ($ftype == TType::STOP) {
+      last;
+    }
+    SWITCH: for($fid)
+    {
+      /^0$/ && do{      if ($ftype == TType::LIST) {
+        {
+          my $_size32 = 0;
+          $self->{success} = [];
+          my $_etype35 = 0;
+          $xfer += $input->readListBegin(\$_etype35, \$_size32);
+          for (my $_i36 = 0; $_i36 < $_size32; ++$_i36)
+          {
+            my $elem37 = undef;
+            {
+              my $_size38 = 0;
+              $elem37 = {};
+              my $_ktype39 = 0;
+              my $_vtype40 = 0;
+              $xfer += $input->readMapBegin(\$_ktype39, \$_vtype40, \$_size38);
+              for (my $_i42 = 0; $_i42 < $_size38; ++$_i42)
+              {
+                my $key43 = '';
+                my $val44 = '';
+                $xfer += $input->readString(\$key43);
+                $xfer += $input->readString(\$val44);
+                $elem37->{$key43} = $val44;
+              }
+              $xfer += $input->readMapEnd();
+            }
+            push(@{$self->{success}},$elem37);
+          }
+          $xfer += $input->readListEnd();
+        }
+      } else {
+        $xfer += $input->skip($ftype);
+      }
+      last; };
+        $xfer += $input->skip($ftype);
+    }
+    $xfer += $input->readFieldEnd();
+  }
+  $xfer += $input->readStructEnd();
+  return $xfer;
+}
+
+sub write {
+  my ($self, $output) = @_;
+  my $xfer   = 0;
+  $xfer += $output->writeStructBegin('Ha_get_drbd_state_result');
+  if (defined $self->{success}) {
+    $xfer += $output->writeFieldBegin('success', TType::LIST, 0);
+    {
+      $xfer += $output->writeListBegin(TType::MAP, scalar(@{$self->{success}}));
+      {
+        foreach my $iter45 (@{$self->{success}}) 
+        {
+          {
+            $xfer += $output->writeMapBegin(TType::STRING, TType::STRING, scalar(keys %{${iter45}}));
+            {
+              while( my ($kiter46,$viter47) = each %{${iter45}}) 
+              {
+                $xfer += $output->writeString($kiter46);
+                $xfer += $output->writeString($viter47);
+              }
+            }
+            $xfer += $output->writeMapEnd();
+          }
+        }
+      }
+      $xfer += $output->writeListEnd();
+    }
+    $xfer += $output->writeFieldEnd();
+  }
+  $xfer += $output->writeFieldStop();
+  $xfer += $output->writeStructEnd();
+  return $xfer;
+}
+
 package OVP::IDVHa::HaIf;
 
 use strict;
@@ -1903,7 +2077,7 @@ sub setup{
   die 'implement interface';
 }
 
-sub amend{
+sub modify{
   my $self = shift;
   my $net = shift;
 
@@ -1912,6 +2086,7 @@ sub amend{
 
 sub remove{
   my $self = shift;
+  my $is_master = shift;
 
   die 'implement interface';
 }
@@ -1978,6 +2153,12 @@ sub get_hostname{
   die 'implement interface';
 }
 
+sub get_drbd_state{
+  my $self = shift;
+
+  die 'implement interface';
+}
+
 package OVP::IDVHa::HaRest;
 
 use strict;
@@ -2015,17 +2196,18 @@ sub setup{
   return $self->{impl}->setup($net, $drbd, $is_master, $is_force);
 }
 
-sub amend{
+sub modify{
   my ($self, $request) = @_;
 
   my $net = ($request->{'net'}) ? $request->{'net'} : undef;
-  return $self->{impl}->amend($net);
+  return $self->{impl}->modify($net);
 }
 
 sub remove{
   my ($self, $request) = @_;
 
-  return $self->{impl}->remove();
+  my $is_master = ($request->{'is_master'}) ? $request->{'is_master'} : undef;
+  return $self->{impl}->remove($is_master);
 }
 
 sub report_disk_error_info{
@@ -2088,6 +2270,12 @@ sub get_hostname{
   my ($self, $request) = @_;
 
   return $self->{impl}->get_hostname();
+}
+
+sub get_drbd_state{
+  my ($self, $request) = @_;
+
+  return $self->{impl}->get_drbd_state();
 }
 
 package OVP::IDVHa::HaClient;
@@ -2244,27 +2432,27 @@ sub recv_setup{
   }
   die "setup failed: unknown result";
 }
-sub amend{
+sub modify{
   my $self = shift;
   my $net = shift;
 
-    $self->send_amend($net);
-  return $self->recv_amend();
+    $self->send_modify($net);
+  return $self->recv_modify();
 }
 
-sub send_amend{
+sub send_modify{
   my $self = shift;
   my $net = shift;
 
-  $self->{output}->writeMessageBegin('amend', TMessageType::CALL, $self->{seqid});
-  my $args = new OVP::IDVHa::Ha_amend_args();
+  $self->{output}->writeMessageBegin('modify', TMessageType::CALL, $self->{seqid});
+  my $args = new OVP::IDVHa::Ha_modify_args();
   $args->{net} = $net;
   $args->write($self->{output});
   $self->{output}->writeMessageEnd();
   $self->{output}->getTransport()->flush();
 }
 
-sub recv_amend{
+sub recv_modify{
   my $self = shift;
 
   my $rseqid = 0;
@@ -2278,27 +2466,30 @@ sub recv_amend{
     $self->{input}->readMessageEnd();
     die $x;
   }
-  my $result = new OVP::IDVHa::Ha_amend_result();
+  my $result = new OVP::IDVHa::Ha_modify_result();
   $result->read($self->{input});
   $self->{input}->readMessageEnd();
 
   if (defined $result->{success} ) {
     return $result->{success};
   }
-  die "amend failed: unknown result";
+  die "modify failed: unknown result";
 }
 sub remove{
   my $self = shift;
+  my $is_master = shift;
 
-    $self->send_remove();
+    $self->send_remove($is_master);
   return $self->recv_remove();
 }
 
 sub send_remove{
   my $self = shift;
+  my $is_master = shift;
 
   $self->{output}->writeMessageBegin('remove', TMessageType::CALL, $self->{seqid});
   my $args = new OVP::IDVHa::Ha_remove_args();
+  $args->{is_master} = $is_master;
   $args->write($self->{output});
   $self->{output}->writeMessageEnd();
   $self->{output}->getTransport()->flush();
@@ -2724,6 +2915,46 @@ sub recv_get_hostname{
   }
   die "get_hostname failed: unknown result";
 }
+sub get_drbd_state{
+  my $self = shift;
+
+    $self->send_get_drbd_state();
+  return $self->recv_get_drbd_state();
+}
+
+sub send_get_drbd_state{
+  my $self = shift;
+
+  $self->{output}->writeMessageBegin('get_drbd_state', TMessageType::CALL, $self->{seqid});
+  my $args = new OVP::IDVHa::Ha_get_drbd_state_args();
+  $args->write($self->{output});
+  $self->{output}->writeMessageEnd();
+  $self->{output}->getTransport()->flush();
+}
+
+sub recv_get_drbd_state{
+  my $self = shift;
+
+  my $rseqid = 0;
+  my $fname;
+  my $mtype = 0;
+
+  $self->{input}->readMessageBegin(\$fname, \$mtype, \$rseqid);
+  if ($mtype == TMessageType::EXCEPTION) {
+    my $x = new TApplicationException();
+    $x->read($self->{input});
+    $self->{input}->readMessageEnd();
+    die $x;
+  }
+  my $result = new OVP::IDVHa::Ha_get_drbd_state_result();
+  $result->read($self->{input});
+  $self->{input}->readMessageEnd();
+
+  if (defined $result->{success} ) {
+    return $result->{success};
+  }
+  die "get_drbd_state failed: unknown result";
+}
 package OVP::IDVHa::HaProcessor;
 
 use strict;
@@ -2797,14 +3028,14 @@ sub process_setup {
     $output->getTransport()->flush();
 }
 
-sub process_amend {
+sub process_modify {
     my ($self, $seqid, $input, $output) = @_;
-    my $args = new OVP::IDVHa::Ha_amend_args();
+    my $args = new OVP::IDVHa::Ha_modify_args();
     $args->read($input);
     $input->readMessageEnd();
-    my $result = new OVP::IDVHa::Ha_amend_result();
-    $result->{success} = $self->{handler}->amend($args->net);
-    $output->writeMessageBegin('amend', TMessageType::REPLY, $seqid);
+    my $result = new OVP::IDVHa::Ha_modify_result();
+    $result->{success} = $self->{handler}->modify($args->net);
+    $output->writeMessageBegin('modify', TMessageType::REPLY, $seqid);
     $result->write($output);
     $output->writeMessageEnd();
     $output->getTransport()->flush();
@@ -2816,7 +3047,7 @@ sub process_remove {
     $args->read($input);
     $input->readMessageEnd();
     my $result = new OVP::IDVHa::Ha_remove_result();
-    $result->{success} = $self->{handler}->remove();
+    $result->{success} = $self->{handler}->remove($args->is_master);
     $output->writeMessageBegin('remove', TMessageType::REPLY, $seqid);
     $result->write($output);
     $output->writeMessageEnd();
@@ -2948,6 +3179,19 @@ sub process_get_hostname {
     my $result = new OVP::IDVHa::Ha_get_hostname_result();
     $result->{success} = $self->{handler}->get_hostname();
     $output->writeMessageBegin('get_hostname', TMessageType::REPLY, $seqid);
+    $result->write($output);
+    $output->writeMessageEnd();
+    $output->getTransport()->flush();
+}
+
+sub process_get_drbd_state {
+    my ($self, $seqid, $input, $output) = @_;
+    my $args = new OVP::IDVHa::Ha_get_drbd_state_args();
+    $args->read($input);
+    $input->readMessageEnd();
+    my $result = new OVP::IDVHa::Ha_get_drbd_state_result();
+    $result->{success} = $self->{handler}->get_drbd_state();
+    $output->writeMessageBegin('get_drbd_state', TMessageType::REPLY, $seqid);
     $result->write($output);
     $output->writeMessageEnd();
     $output->getTransport()->flush();
