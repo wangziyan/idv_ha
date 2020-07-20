@@ -34,7 +34,7 @@ class ProcessHandler(object):
         return self.__drbd_mgr.have_drbd_with_others(ip1, ip2)
 
     def prepared(self, disks):
-        # 检测是否具备开启idv ha的条件
+        # 检测是否具备开启IDVHa的条件
         logger.info("server recv idv_ha_prepared")
         return self.__disk_mgr.is_well_prepared(disks)
 
@@ -54,13 +54,6 @@ class ProcessHandler(object):
         block_dev = drbd.block_dev
         res_num = drbd.res_num
 
-        # 如果目录已经挂载需要先取消挂载，如果是主节点的话之后要再次挂载
-        # if not self.__disk_mgr.try_umount(block_dev):
-        #    return HA_SETUP_RESULT.UMOUNT_ERROR
-        # else:
-        #    # 更新drbd mgr中可挂载的状态
-        # self.__drbd_mgr.update_mount(res_num)
-
         # 判断是否存在drbd元数据
         if self.__drbd_mgr.is_drbd_meta_data_exist(res_num, block_dev):
             # 若存在,更新drbd资源文件,恢复建立连接
@@ -74,6 +67,9 @@ class ProcessHandler(object):
             if result:
                 # TODO(wzy)：失败的话需要重新恢复服务，挂载？
                 return HA_SETUP_RESULT.INIT_ERROR
+
+        if not is_master:
+            return result
 
         # 等待对端是否完成了同步准备工作，然后开始同步
         for _ in range(3):
@@ -93,9 +89,16 @@ class ProcessHandler(object):
         self.__drbd_mgr.start_multi_services()
         # 保存信息到配置文件
         self.__drbd_mgr.save_idv_ha_conf(net, drbd, is_master, True)
-        # TODO(wzy)：接管storage-mount.cfg来挂载文件
+        # 接管AVD Server自动挂载，由IDV_HA完成挂载
+        self.__drbd_mgr.take_over_mount(drbd)
 
         return result
+
+    def modify(self, net):
+        pass
+
+    def remove(self):
+        pass
 
     def ready_to_sync(self, res_num):
         return self.__drbd_mgr.is_ready_to_sync(res_num)

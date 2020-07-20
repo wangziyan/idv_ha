@@ -40,7 +40,9 @@ from utility import (is_idv_ha_enabled,
                      get_idv_ha_conf,
                      is_master_node,
                      save_conf,
-                     get_keepalived_conf)
+                     get_keepalived_conf,
+                     disable_auto_mount,
+                     enable_auto_mount)
 from timer_task import TimerTask
 
 class Drbd(object):
@@ -322,7 +324,7 @@ class DrbdManager(object):
         self.all_change_dir = []
         self.in_update_time = 0
 
-        # temporary
+        # temporary useless
         # self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
 
     def prepare(self):
@@ -479,6 +481,14 @@ class DrbdManager(object):
 
         save_conf(IDV_HA_CONF, new_conf)
 
+    def take_over_mount(self, drbd):
+        storage = get_storage_name(drbd.block_dev)
+        disable_auto_mount(storage)
+
+    def recover_mount(self):
+        for drbd in self.drbd_lists:
+            enable_auto_mount(drbd.storage)
+
     def have_drbd_with_others(self, ip1, ip2):
         # 判断是否已经与其他节点建立了IDV_HA
         if not is_idv_ha_enabled():
@@ -513,7 +523,7 @@ class DrbdManager(object):
 
         return drbd.status
 
-    def update_mount(self, res_num):
+    def update_mount(self, res_num):  # temporary useless
         for drbd in self.drbd_lists:
             if res_num == drbd.res_num:
                 drbd.is_umount = True
@@ -547,9 +557,10 @@ class DrbdManager(object):
         # 重新修改drbd配置文件,资源文件,然后再保存
         print("update resource conf")
         print("resource num:" + drbd_info.res_num)
-        print("port num:" + drbd_info.port)
-        print("node name:" + drbd_info.node)
-        print("block dev:" + drbd_info.block)
+        print("port num:" + drbd_info.port_num)
+        print("node1 name:" + drbd_info.primary_host)
+        print("node2 name:" + drbd_info.secondary_host)
+        print("block dev:" + drbd_info.block_dev)
         res_num = drbd_info.res_num
         status = None
 
