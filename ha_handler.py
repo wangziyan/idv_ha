@@ -100,6 +100,9 @@ class ProcessHandler(object):
     def ready_to_sync(self, res_num):
         return self.__drbd_mgr.is_ready_to_sync(res_num)
 
+    def get_drbd_state(self):
+        return self.__drbd_mgr.get_state()
+
     # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):
         logger.info("server recv drbd health check")

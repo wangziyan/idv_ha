@@ -25,6 +25,7 @@ from drbd_const import (DrbdState,
                         DrbdDiskState,
                         DrbdRState,
                         DrbdRole,
+                        SyncState,
                         UPDATE_INTERVERL)
 from drbd_cmd import (drbd_base_resource_str,
                       get_drbd_role)
@@ -51,8 +52,9 @@ class Drbd(object):
         self.is_primary = None
         self.res_num = resource_num
         self.is_metadata_ready = None
-        self.is_umount = True # temporary useless
+        self.is_umount = True  # temporary useless
         self.fs_type = None
+        self.storage = None
 
         self.role = DrbdRole.unknown
         self.cstate = DrbdConnState.unknown
@@ -70,6 +72,7 @@ class Drbd(object):
             self.res_path = resource_conf.get("resource_path", "/etc/drbd.d/r%s.res" % (self.res_num))
             self.storage_dir = resource_conf.get("storage_dir", "")
             self.status = resource_conf.get("status", 0)
+            self.storage = resource_conf.get("storage", get_storage_name(self.back_device))
         else:
             self.back_device = None
             self.drbd_dev = "/dev/drbd%s" % (self.res_num)
@@ -97,6 +100,7 @@ class Drbd(object):
         self.port = str(drbd_info.port_num)
         self.back_device = drbd_info.block_dev
         self.storage_dir = get_disk_info_from_cfg(get_storage_name(self.back_device), "path")  # 从storage.cfg中获取挂载目录
+        self.storage = get_storage_name(self.back_device)
         # TODO(wzy):role是否更新，还是等待定时器自动获取
         self.role = DrbdRole.primary if is_primary else DrbdRole.secondary
 
@@ -207,6 +211,15 @@ class Drbd(object):
             logger.error("get_fs_type error: %s" % e)
 
         return _type
+
+    def get_current_state(self):
+        if self.dstate == DrbdDiskState.up_to_date:
+            return SyncState.FINISHED
+
+        if self.rstate == DrbdRState.sync_source or self.rstate == DrbdRState.sync_target:
+            return SyncState.SYNC
+
+        return SyncState.WAITING
 
     def create_drbd_resource_file(self):
         try:
@@ -321,7 +334,7 @@ class DrbdManager(object):
                 for res_num, res_conf in drbd_conf.items():
                     drbd = Drbd(res_num, res_conf)
                     # 根据配置文件初始化原有的状态是否清空
-                    # drbd.status = DrbdState.SUCCESS
+                    drbd.status = DrbdState.SUCCESS
                     drbd.up_resource()
 
                     if not drbd.back_device_exist():
@@ -430,6 +443,7 @@ class DrbdManager(object):
             drbd_conf[res_num]["resource_path"] = drbd.res_path
             drbd_conf[res_num]["storage_dir"] = drbd.storage_dir
             drbd_conf[res_num]["status"] = drbd.status
+            drbd_conf[res_num]["storage"] = drbd.storage
 
         save_conf(DRBD_CONF, drbd_conf)
 
@@ -623,3 +637,15 @@ class DrbdManager(object):
         }
 
         return idv_info
+
+    def get_state(self):
+        result = []
+        state = {}
+
+        for drbd in self.drbd_lists:
+            state['status'] = drbd.get_current_state()
+            state['rate'] = drbd.progress
+            state['storage'] = drbd.storage
+            result.append(state)
+
+        return state

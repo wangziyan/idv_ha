@@ -46,3 +46,10 @@ class DrbdRole(object):
     error = "Error"
     primary_no_secondary = "Primary/Unknown"
     secondary_no_primary = "Secondary/Unknown"
+
+class SyncState(object):
+    WAITING = -1    # 未开始
+    SYNC = 1        # 正在同步
+    FINISHED = 2    # 同步完成
+    ALONE = 3       # 自己断开连接
+    CONNECTING = 4  # 对方断开连接

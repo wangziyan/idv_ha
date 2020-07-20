@@ -41,7 +41,7 @@ service Ha{
     // 建立idv高可用服务
     i32 setup(1:NetInfo net, 2:DrbdInfo drbd, 3:bool is_master, 4:bool is_force)
     // 修改idv高可用服务
-    i32 amend(1:NetInfo net)
+    i32 modify(1:NetInfo net)
     // 删除idv高可用服务
     i32 remove()
 
@@ -69,5 +69,8 @@ service Ha{
     // 获取idv高可用配置信息
     map<string, string> get_ha_info()
 
+    // 获取主机名
     string get_hostname()
+    // 获取DRBD当前同步状态
+    list<map<string, string>> get_drbd_state()
 }
