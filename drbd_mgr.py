@@ -103,6 +103,8 @@ class Drbd(object):
         self.back_device = drbd_info.block_dev
         self.storage_dir = get_disk_info_from_cfg(get_storage_name(self.back_device), "path")  # 从storage.cfg中获取挂载目录
         self.storage = get_storage_name(self.back_device)
+        # 更新挂载目录
+        self.mount_cmd = self.init_cmd_shell()
         # TODO(wzy):role是否更新，还是等待定时器自动获取
         self.role = DrbdRole.primary if is_primary else DrbdRole.secondary
 
@@ -369,10 +371,16 @@ class DrbdManager(object):
 
     def start_multi_services(self):
         # 开启多种服务
-        cmd = "systemctl start drbd ovp-idv smb"
+        cmd = "systemctl start drbd keepalived ovp-idv smb"
         ret, output = shell_cmd(cmd, need_out=True)
         if ret != SUCCESS:
             logger.error("start services failed output: %s" % output)
+
+    def stop_drbd_service(self):
+        cmd = "systemctl stop drbd keepalived"
+        ret, output = shell_cmd(cmd, need_out=True)
+        if ret != SUCCESS:
+            logger.error("stop drbd keepalvied service failed output: %s" % output)
 
     def update_drbd_task(self):
         for drbd in self.drbd_lists:
@@ -485,7 +493,7 @@ class DrbdManager(object):
         storage = get_storage_name(drbd.block_dev)
         disable_auto_mount(storage)
 
-    def recover_mount(self):
+    def recover_auto_mount(self):
         for drbd in self.drbd_lists:
             enable_auto_mount(drbd.storage)
 
@@ -659,4 +667,22 @@ class DrbdManager(object):
             state['storage'] = drbd.storage
             result.append(state)
 
-        return state
+        return result
+
+    def get_drbd_list(self):
+        return self.drbd_lists
+
+    def remove(self, is_master):
+        for drbd in self.drbd_lists:
+            drbd.down_resource()
+            drbd.drbd_dev = drbd.back_device
+            drbd.mount_cmd = drbd.init_cmd_shell()
+
+        self.save_idv_ha_conf(None, None, is_master, False)
+        self.mount_all_dir()
+        self.recover_auto_mount()
+        self.start_multi_services()
+        self.stop_drbd_service()
+        self.drbd_lists.clear()
+
+        return SUCCESS

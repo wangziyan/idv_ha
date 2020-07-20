@@ -51,6 +51,12 @@ class ProcessHandler(object):
         print("drbd secondary_host is %s" % drbd.secondary_host)
         print("drbd block_dev is %s" % drbd.block_dev)
 
+        if is_master:
+            result = Remote.remote_setup(net, drbd, is_master, is_force)
+
+        if is_master and result:
+            return result + 10
+
         block_dev = drbd.block_dev
         res_num = drbd.res_num
 
@@ -97,8 +103,24 @@ class ProcessHandler(object):
     def modify(self, net):
         pass
 
-    def remove(self):
-        pass
+    def remove(self, addr, is_master):
+        logger.info("server recv remove idv ha")
+        result = None
+        remote_result = None
+
+        if is_master:
+            drbd_lists = self.__drbd_mgr.get_drbd_list()
+            for drbd in drbd_lists:
+                if self.__disk_mgr.try_umount(drbd.drbd_dev):
+                    return result
+
+        if is_master:
+            remote_result = Remote.remote_remove(addr, not is_master)
+
+        if is_master and remote_result:
+            return remote_result
+
+        return self.__drbd_mgr.remove(is_master)
 
     def ready_to_sync(self, res_num):
         return self.__drbd_mgr.is_ready_to_sync(res_num)

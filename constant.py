@@ -42,13 +42,19 @@ class HA_PREPARE_RESULT(object):
     DISK_BUSY = 8               # 磁盘被占用无法取消挂载
 
 class HA_SETUP_RESULT(object):
-    SUCCESS = 0              # 建立成功
-    UMOUNT_ERROR = 1         # 取消挂载失败 useless
-    INIT_ERROR = 2           # 初始化失败
-    FS_EXIST = 3             # 仍有数据，需要清空
-    THRIFT_ERROR = 4         # Thrift请求出现问题
-    ERROR_5 = 5
-    UNKNOWN = 10             # 未知
+    SUCCESS = 0               # 建立成功
+    UMOUNT_ERROR = 1          # 取消挂载失败 useless
+    INIT_ERROR = 2            # 初始化失败
+    FS_EXIST = 3              # 仍有数据，需要清空
+    REMOTE_UMOUNT_ERROR = 11  # 远端取消挂在失败
+    REMOTE_INIT_ERROR = 12    # 远端初始化失败
+    REMOTE_FS_EXIST = 13      # 远端仍有数据需要清空
+    UNKNOWN = 100             # 未知
+
+class HA_REMOVE_RESULT(object):
+    SUCCESS = 0                 # 移除成功
+    UMOUNT_ERROR = 1            # 取消挂载失败
+    DOWN_RES_ERROR = 2          # 资源关闭失败
 
 ####################################Drbd State####################################
 SUCCESS = 0
