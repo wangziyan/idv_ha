@@ -71,7 +71,6 @@ class DiskManager(object):
 
     def try_umount(self, block_dev):
         # TODO(wzy): 先关闭ovp-idv、smb服务,最后要记得再次开启
-        # TODO(wzy): 还有可能因为共享目录开启占用，导致无法umount
         cmd_stop_service = "systemctl stop ovp-idv smb"
         shell_cmd(cmd_stop_service)
         cmd_umount = "umount -f %s" % block_dev

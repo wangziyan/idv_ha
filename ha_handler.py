@@ -52,7 +52,10 @@ class ProcessHandler(object):
         print("drbd block_dev is %s" % drbd.block_dev)
 
         if is_master:
-            result = Remote.remote_setup(net, drbd, is_master, is_force)
+            result = Remote.remote_setup(net, drbd, not is_master, is_force)
+
+        if result:
+            logger.info("setup result %d" % result)
 
         if is_master and result:
             return result + 10
@@ -60,8 +63,8 @@ class ProcessHandler(object):
         block_dev = drbd.block_dev
         res_num = drbd.res_num
 
-        # 判断是否存在drbd元数据
-        if self.__drbd_mgr.is_drbd_meta_data_exist(res_num, block_dev):
+        # 主节点判断是否存在元数据，备节点重新建立
+        if self.__drbd_mgr.is_drbd_meta_data_exist(res_num, block_dev) and is_master:
             # 若存在,更新drbd资源文件,恢复建立连接
             result = self.__drbd_mgr.update_and_recovery(net, drbd, is_master)
             if result:
@@ -75,15 +78,22 @@ class ProcessHandler(object):
                 return HA_SETUP_RESULT.INIT_ERROR
 
         if not is_master:
+            logger.info("remote server setup result is %d" % result)
+            self.__drbd_mgr.start_multi_services()
+            self.__drbd_mgr.save_idv_ha_conf(net, drbd, is_master, True)
+            self.__drbd_mgr.take_over_mount(drbd)
+            logger.info("remote server setup result is %d" % result)
             return result
 
         # 等待对端是否完成了同步准备工作，然后开始同步
-        for _ in range(3):
-            if Remote.ready_to_sync(net.backup_ip, res_num):
-                self.__drbd_mgr.force_primary_resource(res_num)
-                result = HA_SETUP_RESULT.SUCCESS
-                break
-            sleep(3)
+        #for _ in range(3):
+        #    if Remote.ready_to_sync(net.backup_ip, res_num):
+        #        self.__drbd_mgr.force_primary_resource(res_num)
+        #        result = HA_SETUP_RESULT.SUCCESS
+        #        break
+        #    sleep(3)
+
+        self.__drbd_mgr.force_primary_resource(res_num)
 
         # 在子线程创建文件系统，完成后挂载目录
         if is_master:
@@ -105,7 +115,6 @@ class ProcessHandler(object):
 
     def remove(self, is_master):
         logger.info("server recv remove idv ha")
-        result = None
         remote_result = None
 
         if is_master:

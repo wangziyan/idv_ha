@@ -59,6 +59,7 @@ class HA_REMOVE_RESULT(object):
 
 ####################################Drbd State####################################
 SUCCESS = 0
+THRIFT_ERROR = 1000
 DRBD_INCONSISTENT = 1001
 DRBD_DISKLESS = 1002
 

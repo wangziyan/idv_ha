@@ -35,7 +35,8 @@ from tools import (shell_cmd,
                    get_disk_info_from_cfg,
                    get_block_size,
                    is_large_disk,
-                   get_storage_name)
+                   get_storage_name,
+                   get_disk_size)
 from utility import (is_idv_ha_enabled,
                      get_drbd_conf,
                      get_idv_ha_conf,
@@ -302,13 +303,13 @@ EOF
         shell_cmd(cmd)
         logger.info("wipe %s filesystem" % self.back_device)
 
-    def make_fs(self, block_dev):
-        size = get_block_size(block_dev)
+    def make_fs(self, block_dev, drbd_dev):
+        size = get_disk_size(block_dev)
 
-        if is_large_disk(size):
-            cmd = "mkfs.ext4 -F -T largefile %s" % block_dev
+        if size >= 500:
+            cmd = "mkfs.ext4 -F -T largefile %s" % drbd_dev
         else:
-            cmd = "mkfs.ext4 -F %s" % block_dev
+            cmd = "mkfs.ext4 -F %s" % drbd_dev
 
         ret, output = shell_cmd(cmd, need_out=True)
 
@@ -463,6 +464,7 @@ class DrbdManager(object):
         enabled: True 表示开启高可用 False 表示关闭高可用
         """
         # 使用有序字典写入配置文件，便于阅读,is useful or useless
+        logger.info("enter save conf %s" % IDV_HA_CONF)
         ha_conf = get_idv_ha_conf()
         new_conf = OrderedDict()
         new_conf["keepalived"] = OrderedDict()
@@ -475,6 +477,17 @@ class DrbdManager(object):
             new_conf["status"] = ha_conf.get("status")
             new_conf["status"]["enable_ha"] = "true" if enabled else "false"
             new_conf["status"]["is_master"] = "true" if is_primary else "false"
+
+            if net_info:
+                new_conf["keepalived"]["state"] = "MASTER" if is_primary else "BACKUP"
+                new_conf["keepalived"]["router_id"] = net_info.rid
+                new_conf["keepalived"]["virtual_ip"] = net_info.vip
+
+            if drbd_info:
+                new_conf["drbd"]["res_num"] = drbd_info.res_num
+                new_conf["drbd"]["res_port"] = drbd_info.port_num
+                new_conf["drbd"]["node1"] = drbd_info.primary_host
+                new_conf["drbd"]["node2"] = drbd_info.secondary_host
         else:
             # 没有配置文件创建一个配置文件
             new_conf["keepalived"]["state"] = "MASTER" if is_primary else "BACKUP"
@@ -489,8 +502,10 @@ class DrbdManager(object):
             new_conf["status"]["is_master"] = "true" if is_primary else "false"
 
         save_conf(IDV_HA_CONF, new_conf)
+        logger.info("save conf %s" % IDV_HA_CONF)
 
     def take_over_mount(self, drbd):
+        logger.info("take over AVD Server auto mount")
         storage = get_storage_name(drbd.block_dev)
         disable_auto_mount(storage)
 
@@ -510,6 +525,7 @@ class DrbdManager(object):
         return True
 
     def init_drbd(self, net_info, drbd_info, is_primary):
+        logger.info("server is master:%d init drbd" % is_primary)
         self.primary_addr = net_info.master_ip
         self.secondary_addr = net_info.backup_ip
         # 创建DRBD对象
@@ -521,8 +537,11 @@ class DrbdManager(object):
         drbd.wipe_fs()
 
         # 创建drbd元数据
-        if not drbd.create_drbd_meta_data():
+        if drbd.create_drbd_meta_data():
             return drbd.status
+
+        # 启用前先关闭资源
+        drbd.down_resource()
 
         # 启用drbd资源
         if not drbd.up_resource():
@@ -531,6 +550,8 @@ class DrbdManager(object):
         self.drbd_lists.append(drbd)
         # 把drbd信息写入配置文件
         self.save_drbd_conf()
+        logger.info("server is master:%d init drbd success" % is_primary)
+        logger.info("server is master:%d drbd status" % drbd.status)
 
         return drbd.status
 
@@ -589,6 +610,8 @@ class DrbdManager(object):
                     drbd.update(net_info, drbd_info, is_primary)
                     # 更新drbd资源文件
                     drbd.update_drbd_resource()
+                    # 启用前先禁用
+                    drbd.down_resource()
                     # 启用资源
                     drbd.up_resource()
                     status = drbd.status
@@ -611,10 +634,12 @@ class DrbdManager(object):
                 return drbd.force_primary()
 
     def mkfs_and_mount(self, res_num):
+        logger.info("master server run mkfs thread")
+
         for drbd in self.drbd_lists:
             if res_num == drbd.res_num:
                 # 开始同步后即创建文件系统,可能比较耗时，在子线程中执行
-                t = Thread(target=drbd.make_fs, args=(drbd.back_device,))
+                t = Thread(target=drbd.make_fs, args=(drbd.back_device, drbd.drbd_dev))
                 t.start()
                 break
 

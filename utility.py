@@ -61,7 +61,7 @@ def get_keepalived_conf():
                 conf["router_id"] = data.get("keepalived").get("router_id", 10)
                 conf["virtual_ip"] = data.get("keepalived").get("virtual_ip", "")
                 conf["interface"] = data.get("keepalived").get("interface", "")
-                logger.info("read keepalived conf state:%s router_id:%d virtual_ip:%s interface:%s",
+                logger.info("read keepalived conf state:%s router_id:%s virtual_ip:%s interface:%s",
                             conf["state"], conf["router_id"], conf["virtual_ip"], conf["interface"])
         except Exception as e:
             logger.error("server get_keepalived_conf error: %s" % e)
@@ -93,12 +93,11 @@ def get_idv_ha_conf():
     return conf
 
 def save_conf(filename, data):
-    if is_file_exist(filename):
-        try:
-            with open(filename, "w") as j_file:
-                json.dump(data, j_file, indent=4)
-        except Exception as e:
-            logger.error("server save_conf error:%s" % e)
+    try:
+        with open(filename, "w") as j_file:
+            json.dump(data, j_file, indent=4)
+    except Exception as e:
+        logger.error("server save_conf error:%s" % e)
 
 def disable_auto_mount(storage):
     """
