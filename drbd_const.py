@@ -53,3 +53,9 @@ class SyncState(object):
     FINISHED = 2    # 同步完成
     ALONE = 3       # 自己断开连接
     CONNECTING = 4  # 对方断开连接
+
+class ConnState(object):
+    stand_alone = 0  # 未连接
+    connected = 1   # 已连接
+    connecting = 2  # 正在连接
+    error = 3       # 错误状态

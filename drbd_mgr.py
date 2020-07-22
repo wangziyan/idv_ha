@@ -27,6 +27,7 @@ from drbd_const import (DrbdState,
                         DrbdRState,
                         DrbdRole,
                         SyncState,
+                        ConnState,
                         UPDATE_INTERVERL)
 from drbd_cmd import (drbd_base_resource_str,
                       get_drbd_role)
@@ -322,6 +323,8 @@ class DrbdManager(object):
         self.drbd_lists = []
         self.primary_addr = None
         self.secondary_addr = None
+        self.primary_host = None
+        self.secondary_host = None
         self.is_primary = None
         self.is_local = False
         self.drbd_prepare_ready = False
@@ -329,11 +332,23 @@ class DrbdManager(object):
         self.in_update_time = 0
 
         # temporary useless
-        # self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
+        self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
 
     def prepare(self):
         if is_idv_ha_enabled():
             logger.info("begin drbd preparation")
+            # 读取配置文件中主机名及ip
+            ha_conf = get_idv_ha_conf()
+
+            if ha_conf:
+                logger.info("begin ha exist")
+                self.primary_addr = ha_conf.get("keepalived")['ip1']
+                self.secondary_addr = ha_conf.get("keepalived")['ip2']
+                self.primary_host = ha_conf.get("drbd")['node1']
+                self.secondary_host = ha_conf.get("drbd")['node2']
+                logger.info("begin prepare ip1:%s ip2:%s node1:%s node2:%s" % (self.primary_addr, self.secondary_addr,
+                            self.primary_host, self.secondary_host))
+
             drbd_conf = get_drbd_conf()
 
             if drbd_conf:
@@ -482,6 +497,8 @@ class DrbdManager(object):
                 new_conf["keepalived"]["state"] = "MASTER" if is_primary else "BACKUP"
                 new_conf["keepalived"]["router_id"] = net_info.rid
                 new_conf["keepalived"]["virtual_ip"] = net_info.vip
+                new_conf["keepalived"]["ip1"] = net_info.master_ip
+                new_conf["keepalived"]["ip2"] = net_info.backup_ip
 
             if drbd_info:
                 new_conf["drbd"]["res_num"] = drbd_info.res_num
@@ -494,6 +511,8 @@ class DrbdManager(object):
             new_conf["keepalived"]["router_id"] = net_info.rid
             new_conf["keepalived"]["virtual_ip"] = net_info.vip
             new_conf["keepalived"]["interface"] = "vmbr0"  # TODO(wzy): 使用哪个网口如何确定
+            new_conf["keepalived"]["ip1"] = "0.0.0.0"
+            new_conf["keepalived"]["ip2"] = "0.0.0.0"
             new_conf["drbd"]["res_num"] = drbd_info.res_num
             new_conf["drbd"]["res_port"] = drbd_info.port_num
             new_conf["drbd"]["node1"] = drbd_info.primary_host
@@ -528,6 +547,8 @@ class DrbdManager(object):
         logger.info("server is master:%d init drbd" % is_primary)
         self.primary_addr = net_info.master_ip
         self.secondary_addr = net_info.backup_ip
+        self.primary_host = drbd_info.primary_host
+        self.secondary_host = drbd_info.secondary_host
         # 创建DRBD对象
         drbd = Drbd(drbd_info.res_num)
         drbd.update(net_info, drbd_info, is_primary)
@@ -595,6 +616,8 @@ class DrbdManager(object):
         print("block dev:" + drbd_info.block_dev)
         self.primary_addr = net_info.master_ip
         self.secondary_addr = net_info.backup_ip
+        self.primary_host = drbd_info.primary_host
+        self.secondary_host = drbd_info.secondary_host
         res_num = drbd_info.res_num
         status = None
 
@@ -672,20 +695,48 @@ class DrbdManager(object):
 
         return SUCCESS
 
-    def get_ha_info(self):
+    def check_state(self):
+        state = 0
+
+        for drbd in self.drbd_lists:
+            if drbd.cstate == DrbdConnState.connected:
+                state = ConnState.connected
+            elif drbd.cstate == DrbdConnState.connecting:
+                state = ConnState.connecting
+            else:
+                state = ConnState.stand_alone
+
+        return state
+
+    def get_ha_info(self, local_ip):
         keepavlied_conf = get_keepalived_conf()
-        vip = keepavlied_conf.get("virtual_ip", "")
-        rid = keepavlied_conf.get("router_id", "")
+        vip = keepavlied_conf.get("virtual_ip")
+        rid = keepavlied_conf.get("router_id")
+        status = self.check_state()
+        local_is_primary = False
+        res = []
 
-        idv_info = {
-            "islocal": "1" if self.is_local else "0",
-            "virip": vip,
-            "routeid": str(rid),
-            "role": "Master" if self.is_primary else "Slave",
-            "status": str(0)
-        }
+        if not is_idv_ha_enabled():
+            return res
 
-        return idv_info
+        if local_ip == self.primary_addr:
+            local_is_primary = True
+
+        for _ in range(2):
+            logger.info("begin range")
+            node_info = {
+                "servername": self.primary_host if local_is_primary else self.secondary_host,
+                "serverip": self.primary_addr if local_is_primary else self.secondary_addr,
+                "islocal": "1" if local_is_primary else "0",
+                "virip": vip,
+                "routeid": str(rid),
+                "role": "Master" if local_is_primary else "Slave",
+                "status": str(status)
+            }
+            local_is_primary = not local_is_primary
+            res.append(node_info)
+
+        return res
 
     def get_state(self):
         result = []
@@ -720,6 +771,6 @@ class DrbdManager(object):
         self.recover_auto_mount()
         self.start_multi_services()
         self.stop_drbd_service()
-        self.drbd_lists.clear()
+        del self.drbd_lists[:]
 
         return HA_REMOVE_RESULT.SUCCESS

@@ -60,6 +60,7 @@ class Remote(object):
         result = None
         try:
             socket = TSocket.TSocket(addr, SERVER_PORT)
+            socket.setTimeout(60000)
             transport = TTransport.TBufferedTransport(socket)
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
             client = Ha.Client(protocol)

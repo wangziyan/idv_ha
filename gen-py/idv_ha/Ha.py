@@ -89,7 +89,11 @@ class Iface:
     """
     pass
 
-  def get_ha_info(self):
+  def get_ha_info(self, local_ip):
+    """
+    Parameters:
+     - local_ip
+    """
     pass
 
   def get_hostname(self):
@@ -468,13 +472,18 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "ready_to_sync failed: unknown result");
 
-  def get_ha_info(self):
-    self.send_get_ha_info()
+  def get_ha_info(self, local_ip):
+    """
+    Parameters:
+     - local_ip
+    """
+    self.send_get_ha_info(local_ip)
     return self.recv_get_ha_info()
 
-  def send_get_ha_info(self):
+  def send_get_ha_info(self, local_ip):
     self._oprot.writeMessageBegin('get_ha_info', TMessageType.CALL, self._seqid)
     args = get_ha_info_args()
+    args.local_ip = local_ip
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -728,7 +737,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = get_ha_info_result()
-    result.success = self._handler.get_ha_info()
+    result.success = self._handler.get_ha_info(args.local_ip)
     oprot.writeMessageBegin("get_ha_info", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -2227,9 +2236,18 @@ class ready_to_sync_result:
     return not (self == other)
 
 class get_ha_info_args:
+  """
+  Attributes:
+   - local_ip
+  """
 
   thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'local_ip', None, None, ), # 1
   )
+
+  def __init__(self, local_ip=None,):
+    self.local_ip = local_ip
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2240,6 +2258,11 @@ class get_ha_info_args:
       (fname, ftype, fid) = iprot.readFieldBegin()
       if ftype == TType.STOP:
         break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.local_ip = iprot.readString();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2250,6 +2273,10 @@ class get_ha_info_args:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('get_ha_info_args')
+    if self.local_ip is not None:
+      oprot.writeFieldBegin('local_ip', TType.STRING, 1)
+      oprot.writeString(self.local_ip)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2275,7 +2302,7 @@ class get_ha_info_result:
   """
 
   thrift_spec = (
-    (0, TType.MAP, 'success', (TType.STRING,None,TType.STRING,None), None, ), # 0
+    (0, TType.LIST, 'success', (TType.MAP,(TType.STRING,None,TType.STRING,None)), None, ), # 0
   )
 
   def __init__(self, success=None,):
@@ -2291,14 +2318,19 @@ class get_ha_info_result:
       if ftype == TType.STOP:
         break
       if fid == 0:
-        if ftype == TType.MAP:
-          self.success = {}
-          (_ktype24, _vtype25, _size23 ) = iprot.readMapBegin()
+        if ftype == TType.LIST:
+          self.success = []
+          (_etype26, _size23) = iprot.readListBegin()
           for _i27 in xrange(_size23):
-            _key28 = iprot.readString();
-            _val29 = iprot.readString();
-            self.success[_key28] = _val29
-          iprot.readMapEnd()
+            _elem28 = {}
+            (_ktype30, _vtype31, _size29 ) = iprot.readMapBegin()
+            for _i33 in xrange(_size29):
+              _key34 = iprot.readString();
+              _val35 = iprot.readString();
+              _elem28[_key34] = _val35
+            iprot.readMapEnd()
+            self.success.append(_elem28)
+          iprot.readListEnd()
         else:
           iprot.skip(ftype)
       else:
@@ -2312,12 +2344,15 @@ class get_ha_info_result:
       return
     oprot.writeStructBegin('get_ha_info_result')
     if self.success is not None:
-      oprot.writeFieldBegin('success', TType.MAP, 0)
-      oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.success))
-      for kiter30,viter31 in self.success.items():
-        oprot.writeString(kiter30)
-        oprot.writeString(viter31)
-      oprot.writeMapEnd()
+      oprot.writeFieldBegin('success', TType.LIST, 0)
+      oprot.writeListBegin(TType.MAP, len(self.success))
+      for iter36 in self.success:
+        oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter36))
+        for kiter37,viter38 in iter36.items():
+          oprot.writeString(kiter37)
+          oprot.writeString(viter38)
+        oprot.writeMapEnd()
+      oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -2505,16 +2540,16 @@ class get_drbd_state_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype35, _size32) = iprot.readListBegin()
-          for _i36 in xrange(_size32):
-            _elem37 = {}
-            (_ktype39, _vtype40, _size38 ) = iprot.readMapBegin()
-            for _i42 in xrange(_size38):
-              _key43 = iprot.readString();
-              _val44 = iprot.readString();
-              _elem37[_key43] = _val44
+          (_etype42, _size39) = iprot.readListBegin()
+          for _i43 in xrange(_size39):
+            _elem44 = {}
+            (_ktype46, _vtype47, _size45 ) = iprot.readMapBegin()
+            for _i49 in xrange(_size45):
+              _key50 = iprot.readString();
+              _val51 = iprot.readString();
+              _elem44[_key50] = _val51
             iprot.readMapEnd()
-            self.success.append(_elem37)
+            self.success.append(_elem44)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -2531,11 +2566,11 @@ class get_drbd_state_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.MAP, len(self.success))
-      for iter45 in self.success:
-        oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter45))
-        for kiter46,viter47 in iter45.items():
-          oprot.writeString(kiter46)
-          oprot.writeString(viter47)
+      for iter52 in self.success:
+        oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter52))
+        for kiter53,viter54 in iter52.items():
+          oprot.writeString(kiter53)
+          oprot.writeString(viter54)
         oprot.writeMapEnd()
       oprot.writeListEnd()
       oprot.writeFieldEnd()

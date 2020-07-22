@@ -1648,11 +1648,18 @@ sub write {
 
 package OVP::IDVHa::Ha_get_ha_info_args;
 use base qw(Class::Accessor);
+OVP::IDVHa::Ha_get_ha_info_args->mk_accessors( qw( local_ip ) );
 
 sub new {
   my $classname = shift;
   my $self      = {};
   my $vals      = shift || {};
+  $self->{local_ip} = undef;
+  if (UNIVERSAL::isa($vals,'HASH')) {
+    if (defined $vals->{local_ip}) {
+      $self->{local_ip} = $vals->{local_ip};
+    }
+  }
   return bless ($self, $classname);
 }
 
@@ -1675,6 +1682,12 @@ sub read {
     }
     SWITCH: for($fid)
     {
+      /^1$/ && do{      if ($ftype == TType::STRING) {
+        $xfer += $input->readString(\$self->{local_ip});
+      } else {
+        $xfer += $input->skip($ftype);
+      }
+      last; };
         $xfer += $input->skip($ftype);
     }
     $xfer += $input->readFieldEnd();
@@ -1687,6 +1700,11 @@ sub write {
   my ($self, $output) = @_;
   my $xfer   = 0;
   $xfer += $output->writeStructBegin('Ha_get_ha_info_args');
+  if (defined $self->{local_ip}) {
+    $xfer += $output->writeFieldBegin('local_ip', TType::STRING, 1);
+    $xfer += $output->writeString($self->{local_ip});
+    $xfer += $output->writeFieldEnd();
+  }
   $xfer += $output->writeFieldStop();
   $xfer += $output->writeStructEnd();
   return $xfer;
@@ -1728,22 +1746,34 @@ sub read {
     }
     SWITCH: for($fid)
     {
-      /^0$/ && do{      if ($ftype == TType::MAP) {
+      /^0$/ && do{      if ($ftype == TType::LIST) {
         {
           my $_size23 = 0;
-          $self->{success} = {};
-          my $_ktype24 = 0;
-          my $_vtype25 = 0;
-          $xfer += $input->readMapBegin(\$_ktype24, \$_vtype25, \$_size23);
+          $self->{success} = [];
+          my $_etype26 = 0;
+          $xfer += $input->readListBegin(\$_etype26, \$_size23);
           for (my $_i27 = 0; $_i27 < $_size23; ++$_i27)
           {
-            my $key28 = '';
-            my $val29 = '';
-            $xfer += $input->readString(\$key28);
-            $xfer += $input->readString(\$val29);
-            $self->{success}->{$key28} = $val29;
+            my $elem28 = undef;
+            {
+              my $_size29 = 0;
+              $elem28 = {};
+              my $_ktype30 = 0;
+              my $_vtype31 = 0;
+              $xfer += $input->readMapBegin(\$_ktype30, \$_vtype31, \$_size29);
+              for (my $_i33 = 0; $_i33 < $_size29; ++$_i33)
+              {
+                my $key34 = '';
+                my $val35 = '';
+                $xfer += $input->readString(\$key34);
+                $xfer += $input->readString(\$val35);
+                $elem28->{$key34} = $val35;
+              }
+              $xfer += $input->readMapEnd();
+            }
+            push(@{$self->{success}},$elem28);
           }
-          $xfer += $input->readMapEnd();
+          $xfer += $input->readListEnd();
         }
       } else {
         $xfer += $input->skip($ftype);
@@ -1762,17 +1792,26 @@ sub write {
   my $xfer   = 0;
   $xfer += $output->writeStructBegin('Ha_get_ha_info_result');
   if (defined $self->{success}) {
-    $xfer += $output->writeFieldBegin('success', TType::MAP, 0);
+    $xfer += $output->writeFieldBegin('success', TType::LIST, 0);
     {
-      $xfer += $output->writeMapBegin(TType::STRING, TType::STRING, scalar(keys %{$self->{success}}));
+      $xfer += $output->writeListBegin(TType::MAP, scalar(@{$self->{success}}));
       {
-        while( my ($kiter30,$viter31) = each %{$self->{success}}) 
+        foreach my $iter36 (@{$self->{success}}) 
         {
-          $xfer += $output->writeString($kiter30);
-          $xfer += $output->writeString($viter31);
+          {
+            $xfer += $output->writeMapBegin(TType::STRING, TType::STRING, scalar(keys %{${iter36}}));
+            {
+              while( my ($kiter37,$viter38) = each %{${iter36}}) 
+              {
+                $xfer += $output->writeString($kiter37);
+                $xfer += $output->writeString($viter38);
+              }
+            }
+            $xfer += $output->writeMapEnd();
+          }
         }
       }
-      $xfer += $output->writeMapEnd();
+      $xfer += $output->writeListEnd();
     }
     $xfer += $output->writeFieldEnd();
   }
@@ -1975,30 +2014,30 @@ sub read {
     {
       /^0$/ && do{      if ($ftype == TType::LIST) {
         {
-          my $_size32 = 0;
+          my $_size39 = 0;
           $self->{success} = [];
-          my $_etype35 = 0;
-          $xfer += $input->readListBegin(\$_etype35, \$_size32);
-          for (my $_i36 = 0; $_i36 < $_size32; ++$_i36)
+          my $_etype42 = 0;
+          $xfer += $input->readListBegin(\$_etype42, \$_size39);
+          for (my $_i43 = 0; $_i43 < $_size39; ++$_i43)
           {
-            my $elem37 = undef;
+            my $elem44 = undef;
             {
-              my $_size38 = 0;
-              $elem37 = {};
-              my $_ktype39 = 0;
-              my $_vtype40 = 0;
-              $xfer += $input->readMapBegin(\$_ktype39, \$_vtype40, \$_size38);
-              for (my $_i42 = 0; $_i42 < $_size38; ++$_i42)
+              my $_size45 = 0;
+              $elem44 = {};
+              my $_ktype46 = 0;
+              my $_vtype47 = 0;
+              $xfer += $input->readMapBegin(\$_ktype46, \$_vtype47, \$_size45);
+              for (my $_i49 = 0; $_i49 < $_size45; ++$_i49)
               {
-                my $key43 = '';
-                my $val44 = '';
-                $xfer += $input->readString(\$key43);
-                $xfer += $input->readString(\$val44);
-                $elem37->{$key43} = $val44;
+                my $key50 = '';
+                my $val51 = '';
+                $xfer += $input->readString(\$key50);
+                $xfer += $input->readString(\$val51);
+                $elem44->{$key50} = $val51;
               }
               $xfer += $input->readMapEnd();
             }
-            push(@{$self->{success}},$elem37);
+            push(@{$self->{success}},$elem44);
           }
           $xfer += $input->readListEnd();
         }
@@ -2023,15 +2062,15 @@ sub write {
     {
       $xfer += $output->writeListBegin(TType::MAP, scalar(@{$self->{success}}));
       {
-        foreach my $iter45 (@{$self->{success}}) 
+        foreach my $iter52 (@{$self->{success}}) 
         {
           {
-            $xfer += $output->writeMapBegin(TType::STRING, TType::STRING, scalar(keys %{${iter45}}));
+            $xfer += $output->writeMapBegin(TType::STRING, TType::STRING, scalar(keys %{${iter52}}));
             {
-              while( my ($kiter46,$viter47) = each %{${iter45}}) 
+              while( my ($kiter53,$viter54) = each %{${iter52}}) 
               {
-                $xfer += $output->writeString($kiter46);
-                $xfer += $output->writeString($viter47);
+                $xfer += $output->writeString($kiter53);
+                $xfer += $output->writeString($viter54);
               }
             }
             $xfer += $output->writeMapEnd();
@@ -2143,6 +2182,7 @@ sub ready_to_sync{
 
 sub get_ha_info{
   my $self = shift;
+  my $local_ip = shift;
 
   die 'implement interface';
 }
@@ -2263,7 +2303,8 @@ sub ready_to_sync{
 sub get_ha_info{
   my ($self, $request) = @_;
 
-  return $self->{impl}->get_ha_info();
+  my $local_ip = ($request->{'local_ip'}) ? $request->{'local_ip'} : undef;
+  return $self->{impl}->get_ha_info($local_ip);
 }
 
 sub get_hostname{
@@ -2837,16 +2878,19 @@ sub recv_ready_to_sync{
 }
 sub get_ha_info{
   my $self = shift;
+  my $local_ip = shift;
 
-    $self->send_get_ha_info();
+    $self->send_get_ha_info($local_ip);
   return $self->recv_get_ha_info();
 }
 
 sub send_get_ha_info{
   my $self = shift;
+  my $local_ip = shift;
 
   $self->{output}->writeMessageBegin('get_ha_info', TMessageType::CALL, $self->{seqid});
   my $args = new OVP::IDVHa::Ha_get_ha_info_args();
+  $args->{local_ip} = $local_ip;
   $args->write($self->{output});
   $self->{output}->writeMessageEnd();
   $self->{output}->getTransport()->flush();
@@ -3164,7 +3208,7 @@ sub process_get_ha_info {
     $args->read($input);
     $input->readMessageEnd();
     my $result = new OVP::IDVHa::Ha_get_ha_info_result();
-    $result->{success} = $self->{handler}->get_ha_info();
+    $result->{success} = $self->{handler}->get_ha_info($args->local_ip);
     $output->writeMessageBegin('get_ha_info', TMessageType::REPLY, $seqid);
     $result->write($output);
     $output->writeMessageEnd();

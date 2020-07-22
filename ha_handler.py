@@ -125,6 +125,7 @@ class ProcessHandler(object):
 
         if is_master:
             remote_ip = self.__drbd_mgr.get_remote_ip()
+            logger.info("remote ip is %s" % remote_ip)
             remote_result = Remote.remote_remove(remote_ip, not is_master)
 
         if is_master and remote_result:
@@ -137,6 +138,16 @@ class ProcessHandler(object):
 
     def get_drbd_state(self):
         return self.__drbd_mgr.get_state()
+
+    def get_ha_info(self, ip):
+        logger.info("server get idv info from perl")
+        print("server get idv info from perl")
+        return self.__drbd_mgr.get_ha_info(ip)
+
+    def get_hostname(self):
+        logger.info("remote server get hostname")
+        print("remote server get hostname")
+        return get_local_hostname()
 
     # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):
@@ -156,13 +167,3 @@ class ProcessHandler(object):
         print("server recv switch backup")
         self.__drbd_task.switch_backup()
         self.__drbd_mgr.switch_backup()
-
-    def get_ha_info(self):
-        logger.info("server get idv info from perl")
-        print("server get idv info from perl")
-        return self.__drbd_mgr.get_ha_info()
-
-    def get_hostname(self):
-        logger.info("remote server get hostname")
-        print("remote server get hostname")
-        return get_local_hostname()

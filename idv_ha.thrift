@@ -67,7 +67,7 @@ service Ha{
     bool ready_to_sync(1:i32 res_num)
 
     // 获取idv高可用配置信息
-    map<string, string> get_ha_info()
+    list<map<string, string>> get_ha_info(1:string local_ip)
 
     // 获取主机名
     string get_hostname()

@@ -61,8 +61,11 @@ def get_keepalived_conf():
                 conf["router_id"] = data.get("keepalived").get("router_id", 10)
                 conf["virtual_ip"] = data.get("keepalived").get("virtual_ip", "")
                 conf["interface"] = data.get("keepalived").get("interface", "")
-                logger.info("read keepalived conf state:%s router_id:%s virtual_ip:%s interface:%s",
-                            conf["state"], conf["router_id"], conf["virtual_ip"], conf["interface"])
+                conf["ip1"] = data.get("keepalived").get("interface", "0.0.0.0")
+                conf["ip2"] = data.get("keepalived").get("interface", "0.0.0.0")
+                logger.info("read keepalived conf state:%s router_id:%s virtual_ip:%s interface:%s ip1:%s ip2:%s",
+                            conf["state"], conf["router_id"], conf["virtual_ip"],
+                            conf["interface"], conf["ip1"], conf["ip2"])
         except Exception as e:
             logger.error("server get_keepalived_conf error: %s" % e)
     else:

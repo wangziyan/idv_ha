@@ -36,7 +36,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void switch_backup()'
   print '  void switch_faults()'
   print '  bool ready_to_sync(i32 res_num)'
-  print '   get_ha_info()'
+  print '   get_ha_info(string local_ip)'
   print '  string get_hostname()'
   print '   get_drbd_state()'
   print ''
@@ -169,10 +169,10 @@ elif cmd == 'ready_to_sync':
   pp.pprint(client.ready_to_sync(eval(args[0]),))
 
 elif cmd == 'get_ha_info':
-  if len(args) != 0:
-    print 'get_ha_info requires 0 args'
+  if len(args) != 1:
+    print 'get_ha_info requires 1 args'
     sys.exit(1)
-  pp.pprint(client.get_ha_info())
+  pp.pprint(client.get_ha_info(args[0],))
 
 elif cmd == 'get_hostname':
   if len(args) != 0:
