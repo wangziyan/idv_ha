@@ -8,3 +8,5 @@ ha implementation with drbd and keepalived
 thrift-0.9.1.exe --gen py idv_ha.thrift
 thrift-0.9.1.exe --gen perl idv_ha.thrift
 
+# test
+
