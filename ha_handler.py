@@ -111,7 +111,7 @@ class ProcessHandler(object):
         return result
 
     def modify(self, net):
-        pass
+        logger.info("server recv modify idv ha")
 
     def remove(self, is_master):
         logger.info("server recv remove idv ha")

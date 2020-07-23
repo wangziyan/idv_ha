@@ -10,8 +10,7 @@ sys.path.append('gen-py')
 
 from argparse import ArgumentParser
 
-from idv_ha import idv_ha
-from idv_ha.ttypes import DiskInfo, NetInfo, DrbdInfo
+from idv_ha import Ha
 
 from thrift import Thrift
 from thrift.transport import TSocket
@@ -27,7 +26,7 @@ def get_client(host="localhost", port=SERVER_PORT, timeout=THRIFT_TIMEOUT):
     transport.setTimeout(timeout)
     transport = TTransport.TBufferedTransport(transport)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
-    client = idv_ha.Client(protocol)
+    client = Ha.Client(protocol)
     return client, transport
 
 def switch_master():
