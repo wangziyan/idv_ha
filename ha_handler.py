@@ -167,3 +167,9 @@ class ProcessHandler(object):
         print("server recv switch backup")
         self.__drbd_task.switch_backup()
         self.__drbd_mgr.switch_backup()
+
+    # TODO(wzy): 切换为备节点
+    def switch_faults(self):
+        logger.info("server recv switch backup")
+        print("server recv switch backup")
+        self.__drbd_task.switch_faults()

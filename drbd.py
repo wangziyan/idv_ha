@@ -105,7 +105,7 @@ class DrbdTask(object):
     def switch_backup(self):
         self.__queue.put(self.__switch_backup)
 
-    def switch_falut(self):
+    def switch_faults(self):
         self.__queue.put(self.__switch_fault)
 
     def health_check(self):

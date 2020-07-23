@@ -53,6 +53,18 @@ def switch_backup():
         logger.info("client transpot close")
         transport.close()
 
+def switch_faults():
+    logger.info("client exec switch faults")
+    try:
+        client, transport = get_client()
+        transport.open()
+        client.switch_faults()
+    except (TException, Exception) as e:
+        logger.exception("client %s", e)
+    finally:
+        logger.info("client transpot close")
+        transport.close()
+
 def drbd_health_check():
     logger.info("client exec drbd health check")
     try:
@@ -76,6 +88,10 @@ parser_switch_master.set_defaults(func=switch_master)
 # 切换成备服务器
 parser_switch_backup = subparsers.add_parser("switch_backup", help="switch node into backup")
 parser_switch_backup.set_defaults(func=switch_backup)
+
+# 切换成备服务器
+parser_switch_faults = subparsers.add_parser("switch_faults", help="switch node into falut mode")
+parser_switch_faults.set_defaults(func=switch_faults)
 
 # drbd健康检测
 parser_drbd_health_check = subparsers.add_parser("drbd_health_check", help="check drbd health status")
