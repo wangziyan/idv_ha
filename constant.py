@@ -17,6 +17,9 @@ IDV_HA_CONF = IDV_HA_CONF_PATH + "idv_ha.conf"
 # DRBD配置文件
 DRBD_CONF = IDV_HA_CONF_PATH + "drbd.conf"
 
+# Keepalived配置文件
+KEEPALIVED_CONF = "/etc/keepalived/keepalived.conf"
+
 # IDV HA日志配置
 AVDS_LOG_PATH = "/thinputer/log/"
 IDV_HA_LOG_NAME = "idv_ha.log"
@@ -59,6 +62,7 @@ class HA_REMOVE_RESULT(object):
 
 ####################################Drbd State####################################
 SUCCESS = 0
+FAILED = 1
 THRIFT_ERROR = 1000
 DRBD_INCONSISTENT = 1001
 DRBD_DISKLESS = 1002

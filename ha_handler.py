@@ -112,6 +112,7 @@ class ProcessHandler(object):
 
     def modify(self, net):
         logger.info("server recv modify idv ha")
+        return self.__drbd_task.modify(net)
 
     def remove(self, is_master):
         logger.info("server recv remove idv ha")

@@ -7,12 +7,16 @@
 
 from Queue import Queue
 from threading import Thread
+from collections import OrderedDict
 
 from common import singleton
 from constant import (SUCCESS,
+                      FAILED,
                       DRBD_INCONSISTENT,
                       DRBD_DISKLESS,
-                      ROLE_ABNORMAL_MAX_TIMES)
+                      ROLE_ABNORMAL_MAX_TIMES,
+                      KEEPALIVED_CONF,
+                      IDV_HA_CONF)
 from drbd_const import (DrbdConnState,
                         DrbdDiskState,
                         DrbdRole)
@@ -22,7 +26,10 @@ from drbd_cmd import (get_cstate,
                       get_drbd_role)
 from keepalived import get_keepalived_state, KeepalivedState
 from tools import shell_cmd
-from utility import get_keepalived_conf
+from utility import (get_keepalived_conf,
+                     update_conf,
+                     get_idv_ha_conf,
+                     save_conf)
 from log import logger
 
 @singleton
@@ -143,6 +150,54 @@ class DrbdTask(object):
             # TODO(wzy): 是否需要增加一个舍弃本端修改重新连接对端的操作discard-my-data?
             cmd = "drbdadm connect all"
             shell_cmd(cmd)
+
+    def modify(self, net):
+        result = FAILED
+
+        if self.__ka_state != "FAULT":
+            if net.vip != self.__virtual_ip:
+                self.__virtual_ip = net.ip
+                re_expr = r"(?:\d{1,3}\.){3}\d{1,3}"
+                begin = r"vrrp_instance\s+management\s+{"
+                end = r"^}"
+                update_conf(KEEPALIVED_CONF, re_expr, net.vip, begin, end)
+
+            if net.rid != self.__router_id:
+                self.__router_id = net.rid
+                re_expr = r"virtual_router_id\s+\d{1,3}"
+                begin = r"vrrp_instance\s+management\s+{"
+                end = r"^}"
+                replace_str = "virtual_router_id " + net.rid
+                update_conf(KEEPALIVED_CONF, re_expr, replace_str, begin, end)
+
+            # 修改HA配置文件
+            self.save_ha_conf(rid=net.rid, vip=net.vip)
+            # 配置热重载
+            cmd = "kill -HUP $(cat /var/run/keepalived.pid)"
+            shell_cmd(cmd)
+            result = SUCCESS
+        else:
+            logger.error("current state is %s not support modify config", self.__ka_state)
+
+        return result
+
+    def save_ha_conf(self, **cfg):
+        ha_conf = get_idv_ha_conf()
+        new_conf = OrderedDict()
+        new_conf["keepalived"] = OrderedDict()
+        new_conf["drbd"] = OrderedDict()
+        new_conf["status"] = OrderedDict()
+        new_conf["keepalived"] = ha_conf.get("keepalived")
+        new_conf["drbd"] = ha_conf.get("drbd")
+        new_conf["status"] = ha_conf.get("status")
+
+        if cfg.get('rid', ''):
+            new_conf["keepalived"]["router_id"] = cfg.get('rid', '')
+        if cfg.get('vip', ''):
+            new_conf["keepalived"]["virtual_ip"] = cfg.get('vip', '')
+
+        save_conf(IDV_HA_CONF, new_conf)
+        logger.info("save idv_ha conf finished")
 
     def __check_ha_cluster_state(self):
         pass

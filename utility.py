@@ -7,6 +7,9 @@
 
 import os
 import json
+import shutil
+import fileinput
+import re
 
 from constant import IDV_HA_CONF, IDV_HA_CONF_PATH, DRBD_CONF, STORAGE_MOUNT
 from log import logger
@@ -137,3 +140,42 @@ def enable_auto_mount(storage):
                 f.write(mount_dir)
         except Exception as e:
             logger.error("enable auto mount error:%s" % e)
+
+def update_conf(cfg, re_exp, replace, begin="", end=""):
+    """
+    更新keepalvied的配置文件
+    """
+    if os.path.exists(cfg):
+        file_bk = "%s.bk" % cfg
+        shutil.copy(cfg, file_bk)
+        modify_file(file_bk, re_exp, replace, begin, end)
+        shutil.move(file_bk, cfg)
+    else:
+        logger.error("file:%s is not exist", cfg)
+
+def modify_file(file_name, re_exp, replace, begin, end):
+    text_begin = begin.strip()
+    text_end = end.strip()
+
+    for_replace = True
+
+    if text_begin:
+        for_replace = False
+
+    try:
+        for line in fileinput.input(file_name, inplace=1):
+            if text_begin and re.search(text_begin, line):
+                for_replace = True
+
+            if text_end and re.search(text_end, line):
+                for_replace = False
+
+            if for_replace:
+                line = re.sub(re_exp, replace, line)
+            print line,
+    except OSError as e:
+        logger.exception(e)
+    except [RuntimeError, ValueError, IndexError] as e:
+        raise e
+    finally:
+        fileinput.close()
