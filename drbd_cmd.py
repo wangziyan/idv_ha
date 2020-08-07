@@ -5,6 +5,7 @@
 # @author: wzy
 #
 
+import re
 from drbd_const import DrbdRole
 from tools import shell_cmd
 
@@ -57,6 +58,15 @@ def get_local_role():
             role = output.split("\n")
         else:
             role = [output]
+
+    return role
+
+def get_remote_role():
+    role = []
+    ret, output = shell_cmd("drbdsetup status all --verbose", need_out=True)
+
+    if ret == 0:
+        role = re.findall(r"role:(.+?) congested:", output)
 
     return role
 

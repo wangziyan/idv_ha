@@ -18,8 +18,9 @@ from constant import (DRBD_CONF,
                       STORAGE_CONF,
                       IDV_HA_CONF,
                       SUCCESS,
-                      DRBD_PRIMARY_FAILED,
-                      DRBD_SECONDARY_FAILED,
+                      DRBD_SWITCH_PRIMARY_FAILED,
+                      DRBD_SWITCH_SECONDARY_FAILED,
+                      DRBD_REMOTE_ROLE_ERROR,
                       HA_REMOVE_RESULT)
 from drbd_const import (DrbdState,
                         DrbdConnState,
@@ -30,7 +31,8 @@ from drbd_const import (DrbdState,
                         ConnState,
                         UPDATE_INTERVERL)
 from drbd_cmd import (drbd_base_resource_str,
-                      get_drbd_role)
+                      get_drbd_role,
+                      get_remote_role)
 from log import logger
 from tools import (shell_cmd,
                    get_disk_info_from_cfg,
@@ -328,8 +330,6 @@ class DrbdManager(object):
         self.is_primary = None
         self.is_local = False
         self.drbd_prepare_ready = False
-        self.all_change_dir = []
-        self.in_update_time = 0
 
         # temporary useless
         self.update_timer = TimerTask(self.update_drbd_task, UPDATE_INTERVERL)
@@ -398,6 +398,12 @@ class DrbdManager(object):
         ret, output = shell_cmd(cmd, need_out=True)
         if ret != SUCCESS:
             logger.error("stop drbd keepalvied service failed output: %s" % output)
+
+    def start_other_service(self):
+        cmd = "systemctl start ovp-idv smb"
+        ret, output = shell_cmd(cmd, need_out=True)
+        if ret != SUCCESS:
+            logger.error("start services failed output: %s" % output)
 
     def update_drbd_task(self):
         for drbd in self.drbd_lists:
@@ -680,6 +686,32 @@ class DrbdManager(object):
 
             sleep(3)
 
+    def switch_master(self):
+        if get_drbd_role() != DrbdRole.primary:
+            for i in range(6):
+                if DrbdRole.primary not in get_remote_role():
+                    for _ in range(3):
+                        self.primary_all_resources()
+                        sleep(2)
+                        if DrbdRole.primary == get_drbd_role():
+                            break
+                    break
+                elif i == 5:
+                    logger.error("remote role is Primary")
+                    return DRBD_REMOTE_ROLE_ERROR
+                sleep(2)
+
+        if get_drbd_role() != DrbdRole.primary:
+            logger.error("primary resource failed")
+            return DRBD_SWITCH_PRIMARY_FAILED
+
+        self.is_primary = True
+
+        self.mount_all_dir()
+        self.start_other_service()
+
+        return SUCCESS
+
     def switch_backup(self):
         if get_drbd_role() == DrbdRole.secondary:
             for _ in range(3):
@@ -691,7 +723,7 @@ class DrbdManager(object):
 
         if get_drbd_role() != DrbdRole.secondary:
             logger.error("drbd secondary resource failed")
-            return DRBD_SECONDARY_FAILED
+            return DRBD_SWITCH_SECONDARY_FAILED
 
         return SUCCESS
 
