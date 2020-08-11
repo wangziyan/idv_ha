@@ -8,7 +8,6 @@
 from Queue import Queue
 from threading import Thread
 from collections import OrderedDict
-from scapy.all import *
 
 from common import singleton
 from constant import (SUCCESS,
@@ -19,7 +18,8 @@ from constant import (SUCCESS,
                       KEEPALIVED_CONF,
                       IDV_HA_CONF,
                       NET_DISCONNECT,
-                      NET_VRRP_NOT_MATCH)
+                      NET_VRRP_NOT_MATCH,
+                      NET_VRRP_VRID_USED)
 from drbd_const import (DrbdConnState,
                         DrbdDiskState,
                         DrbdRole)
@@ -28,7 +28,10 @@ from drbd_cmd import (get_cstate,
                       get_local_role,
                       get_drbd_role)
 from keepalived import get_keepalived_state, KeepalivedState
-from tools import shell_cmd, check_net
+from tools import (shell_cmd,
+                   check_net,
+                   vrrp_is_matched,
+                   vrid_is_used)
 from utility import (get_keepalived_conf,
                      update_conf,
                      get_idv_ha_conf,
@@ -127,15 +130,10 @@ class DrbdTask(object):
             logger.error("net is disconnect")
             return NET_DISCONNECT
 
-        # 捕获数据包
-        result = NET_VRRP_NOT_MATCH
-        pkt_list = sniff(filter="vrrp", timeout=2, store=1)
+        if vrrp_is_matched(self.__router_id, self.__virtual_ip):
+            return SUCCESS
 
-        for pkt in pkt_list:
-            if pkt['VRRP'].vrid == self.__router_id and pkt['VRRP'].addrlist[0] == self.__virtual_ip:
-                result = SUCCESS
-
-        return result
+        return NET_VRRP_NOT_MATCH
 
     def health_check(self):
         self.__conn_state_check()
@@ -177,20 +175,24 @@ class DrbdTask(object):
         result = FAILED
 
         if self.__ka_state != "FAULT":
-            if net.vip != self.__virtual_ip:
-                self.__virtual_ip = net.ip
-                re_expr = r"(?:\d{1,3}\.){3}\d{1,3}"
-                begin = r"vrrp_instance\s+management\s+{"
-                end = r"^}"
-                update_conf(KEEPALIVED_CONF, re_expr, net.vip, begin, end)
-
             if net.rid != self.__router_id:
+                # 如果局域网中已经有使用了的虚拟路由id则不允许重复使用
+                if vrid_is_used(net.rid):
+                    return NET_VRRP_VRID_USED
+
                 self.__router_id = net.rid
                 re_expr = r"virtual_router_id\s+\d{1,3}"
                 begin = r"vrrp_instance\s+management\s+{"
                 end = r"^}"
                 replace_str = "virtual_router_id " + net.rid
                 update_conf(KEEPALIVED_CONF, re_expr, replace_str, begin, end)
+
+            if net.vip != self.__virtual_ip:
+                self.__virtual_ip = net.ip
+                re_expr = r"(?:\d{1,3}\.){3}\d{1,3}"
+                begin = r"vrrp_instance\s+management\s+{"
+                end = r"^}"
+                update_conf(KEEPALIVED_CONF, re_expr, net.vip, begin, end)
 
             # 修改HA配置文件
             self.save_ha_conf(rid=net.rid, vip=net.vip)

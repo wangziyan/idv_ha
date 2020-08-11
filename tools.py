@@ -11,6 +11,8 @@ import tempfile
 import time
 import re
 from functools import wraps
+from scapy.sendrecv import sniff
+from scapy.layers import vrrp
 
 from constant import STORAGE_CONF, DISK_SIZE_LIMIT
 from log import logger
@@ -216,3 +218,26 @@ def set_timer(interval, func_name=None):
                 time.sleep(interval)
         return __timer
     return _timer
+
+def vrrp_is_matched(vrid, vip):
+    """
+    抓包检测虚拟路由id和虚拟ip是否匹配
+    """
+    pkt_list = sniff(filter="vrrp", timeout=2, store=1)
+
+    for pkt in pkt_list:
+        if pkt['VRRP'].vrid == vrid and pkt['VRRP'].addrlist[0] == vip:
+            return True
+
+    return False
+
+def vrid_is_used(vrid):
+    """
+    抓包检测虚拟路由id是否重复使用
+    """
+    pkt_list = sniff(filter="vrrp", timeout=2, store=1)
+
+    if any(pkt['VRRP'].vrid == vrid for pkt in pkt_list):
+        return True
+
+    return False
