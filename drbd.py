@@ -8,6 +8,7 @@
 from Queue import Queue
 from threading import Thread
 from collections import OrderedDict
+from scapy.all import *
 
 from common import singleton
 from constant import (SUCCESS,
@@ -16,7 +17,9 @@ from constant import (SUCCESS,
                       DRBD_DISKLESS,
                       ROLE_ABNORMAL_MAX_TIMES,
                       KEEPALIVED_CONF,
-                      IDV_HA_CONF)
+                      IDV_HA_CONF,
+                      NET_DISCONNECT,
+                      NET_VRRP_NOT_MATCH)
 from drbd_const import (DrbdConnState,
                         DrbdDiskState,
                         DrbdRole)
@@ -25,7 +28,7 @@ from drbd_cmd import (get_cstate,
                       get_local_role,
                       get_drbd_role)
 from keepalived import get_keepalived_state, KeepalivedState
-from tools import shell_cmd
+from tools import shell_cmd, check_net
 from utility import (get_keepalived_conf,
                      update_conf,
                      get_idv_ha_conf,
@@ -38,6 +41,10 @@ class DrbdTask(object):
         self.__queue = Queue()
         self.__task_run = False
         self.__role_abnormal_times = 0
+        self.__ka_state = None
+        self.__router_id = None
+        self.__virtual_ip = None
+        self.__interface = None
         self.read_keepalived()
         self.start()
 
@@ -114,6 +121,21 @@ class DrbdTask(object):
 
     def switch_faults(self):
         self.__queue.put(self.__switch_fault)
+
+    def net_health_check(self):
+        if not check_net(self.__interface):
+            logger.error("net is disconnect")
+            return NET_DISCONNECT
+
+        # 捕获数据包
+        result = NET_VRRP_NOT_MATCH
+        pkt_list = sniff(filter="vrrp", timeout=2, store=1)
+
+        for pkt in pkt_list:
+            if pkt['VRRP'].vrid == self.__router_id and pkt['VRRP'].addrlist[0] == self.__virtual_ip:
+                result = SUCCESS
+
+        return result
 
     def health_check(self):
         self.__conn_state_check()

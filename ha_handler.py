@@ -150,6 +150,11 @@ class ProcessHandler(object):
         print("remote server get hostname")
         return get_local_hostname()
 
+    # 网络健康检测
+    def net_health_check(self):
+        logger.info("server recv net health check")
+        return self.__drbd_task.net_health_check()
+
     # TODO(wzy): drbd的健康状态检测
     def drbd_health_check(self):
         logger.info("server recv drbd health check")

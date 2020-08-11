@@ -71,4 +71,9 @@ DRBD_SWITCH_PRIMARY_FAILED = 1100  # 提升为主失败
 DRBD_SWITCH_SECONDARY_FAILED = 1101  # 降级为备失败
 DRBD_REMOTE_ROLE_ERROR = 1102  # 远端角色错误
 
+####################################Keepalived State####################################
+NET_DISCONNECT = 1200  # 网络断开
+NET_VRRP_NOT_MATCH = 1201  # 没有匹配的VRRP包
+NET_VRRP_VRID_USED = 1202  # 虚拟路由id已经被使用
+
 ROLE_ABNORMAL_MAX_TIMES = 3

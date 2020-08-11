@@ -65,18 +65,33 @@ def switch_faults():
         logger.info("client transpot close")
         transport.close()
 
-def drbd_health_check():
-    logger.info("client exec drbd health check")
+def network_health_check():
+    logger.info("client exec network health check")
+    result = 0
     try:
         client, transport = get_client()
         transport.open()
-        res = client.drbd_health_check()
+        result = client.net_health_check()
     except (TException, Exception) as e:
         logger.exception("client %s", e)
     finally:
         logger.info("client transpot close")
         transport.close()
-        return res
+        return result
+
+def drbd_health_check():
+    logger.info("client exec drbd health check")
+    result = 0
+    try:
+        client, transport = get_client()
+        transport.open()
+        result = client.drbd_health_check()
+    except (TException, Exception) as e:
+        logger.exception("client %s", e)
+    finally:
+        logger.info("client transpot close")
+        transport.close()
+        return result
 
 parser = ArgumentParser(description="IDV High Availability Client")
 subparsers = parser.add_subparsers(help="sub-command help")
@@ -92,6 +107,10 @@ parser_switch_backup.set_defaults(func=switch_backup)
 # 切换成备服务器
 parser_switch_faults = subparsers.add_parser("switch_faults", help="switch node into falut mode")
 parser_switch_faults.set_defaults(func=switch_faults)
+
+# net健康检测
+parser_network_health_check = subparsers.add_parser("network_health_check", help="check network health status")
+parser_network_health_check.set_defaults(func=network_health_check)
 
 # drbd健康检测
 parser_drbd_health_check = subparsers.add_parser("drbd_health_check", help="check drbd health status")
