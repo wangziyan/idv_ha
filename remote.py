@@ -72,3 +72,22 @@ class Remote(object):
             result = THRIFT_ERROR
 
         return result
+
+    @classmethod
+    def remote_modify(cls, net, is_master):
+        logger.info("exec remote modify")
+        result = None
+        try:
+            socket = TSocket.TSocket(net.backup_ip, SERVER_PORT)
+            socket.setTimeout(60000)
+            transport = TTransport.TBufferedTransport(socket)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            client = Ha.Client(protocol)
+            transport.open()
+            result = client.modify(net, is_master)
+            transport.close()
+        except (TException, Exception) as e:
+            logger.exception("remote client %s", e)
+            result = THRIFT_ERROR
+
+        return result

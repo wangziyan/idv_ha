@@ -43,10 +43,11 @@ class Iface:
     """
     pass
 
-  def modify(self, net):
+  def modify(self, net, is_master):
     """
     Parameters:
      - net
+     - is_master
     """
     pass
 
@@ -208,18 +209,20 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "setup failed: unknown result");
 
-  def modify(self, net):
+  def modify(self, net, is_master):
     """
     Parameters:
      - net
+     - is_master
     """
-    self.send_modify(net)
+    self.send_modify(net, is_master)
     return self.recv_modify()
 
-  def send_modify(self, net):
+  def send_modify(self, net, is_master):
     self._oprot.writeMessageBegin('modify', TMessageType.CALL, self._seqid)
     args = modify_args()
     args.net = net
+    args.is_master = is_master
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -627,7 +630,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = modify_result()
-    result.success = self._handler.modify(args.net)
+    result.success = self._handler.modify(args.net, args.is_master)
     oprot.writeMessageBegin("modify", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -1198,15 +1201,18 @@ class modify_args:
   """
   Attributes:
    - net
+   - is_master
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'net', (NetInfo, NetInfo.thrift_spec), None, ), # 1
+    (2, TType.BOOL, 'is_master', None, None, ), # 2
   )
 
-  def __init__(self, net=None,):
+  def __init__(self, net=None, is_master=None,):
     self.net = net
+    self.is_master = is_master
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1223,6 +1229,11 @@ class modify_args:
           self.net.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.BOOL:
+          self.is_master = iprot.readBool();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1236,6 +1247,10 @@ class modify_args:
     if self.net is not None:
       oprot.writeFieldBegin('net', TType.STRUCT, 1)
       self.net.write(oprot)
+      oprot.writeFieldEnd()
+    if self.is_master is not None:
+      oprot.writeFieldBegin('is_master', TType.BOOL, 2)
+      oprot.writeBool(self.is_master)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

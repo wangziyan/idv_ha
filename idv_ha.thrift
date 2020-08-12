@@ -41,7 +41,7 @@ service Ha{
     // 建立idv高可用服务
     i32 setup(1:NetInfo net, 2:DrbdInfo drbd, 3:bool is_master, 4:bool is_force)
     // 修改idv高可用服务
-    i32 modify(1:NetInfo net)
+    i32 modify(1:NetInfo net, 2:bool is_master)
     // 删除idv高可用服务
     i32 remove(1:bool is_master)
 

@@ -22,6 +22,8 @@ class ProcessHandler(object):
         self.__drbd_mgr = DrbdManager()
         self.__disk_mgr = DiskManager()
 
+        self.__drbd_task.set_drbd_mgr(self.__drbd_mgr)
+
         t = Thread(target=self.prepare)
         t.start()
 
@@ -110,8 +112,20 @@ class ProcessHandler(object):
 
         return result
 
-    def modify(self, net):
+    def modify(self, net, is_master):
         logger.info("server recv modify idv ha")
+        result = None
+
+        if is_master:
+            result = self.__drbd_task.modify(net)
+
+            if result:
+                return result
+
+            result = Remote.remote_modify(net, False)
+
+            return result
+
         return self.__drbd_task.modify(net)
 
     def remove(self, is_master):
@@ -162,6 +176,7 @@ class ProcessHandler(object):
 
     def switch_master(self):
         logger.info("server recv switch master")
+        self.__drbd_task.switch_master()
         return self.__drbd_mgr.switch_master()
 
     # TODO(wzy): 切换为备节点

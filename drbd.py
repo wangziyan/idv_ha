@@ -19,7 +19,8 @@ from constant import (SUCCESS,
                       IDV_HA_CONF,
                       NET_DISCONNECT,
                       NET_VRRP_NOT_MATCH,
-                      NET_VRRP_VRID_USED)
+                      NET_VRRP_VRID_USED,
+                      HA_MODIFY_RESULT)
 from drbd_const import (DrbdConnState,
                         DrbdDiskState,
                         DrbdRole)
@@ -48,6 +49,7 @@ class DrbdTask(object):
         self.__router_id = None
         self.__virtual_ip = None
         self.__interface = None
+        self.__drbd_mgr = None
         self.read_keepalived()
         self.start()
 
@@ -116,6 +118,9 @@ class DrbdTask(object):
                 elif keepa_state == KeepalivedState.backup:
                     self.switch_backup()
 
+    def set_drbd_mgr(self, mgr):
+        self.__drbd_mgr = mgr
+
     def switch_master(self):
         self.__queue.put(self.__switch_master)
 
@@ -172,13 +177,13 @@ class DrbdTask(object):
             shell_cmd(cmd)
 
     def modify(self, net):
-        result = FAILED
+        result = HA_MODIFY_RESULT.UNKNOWN
 
         if self.__ka_state != "FAULT":
             if net.rid != self.__router_id:
                 # 如果局域网中已经有使用了的虚拟路由id则不允许重复使用
                 if vrid_is_used(net.rid):
-                    return NET_VRRP_VRID_USED
+                    return HA_MODIFY_RESULT.VRID_USED
 
                 self.__router_id = net.rid
                 re_expr = r"virtual_router_id\s+\d{1,3}"
@@ -199,9 +204,10 @@ class DrbdTask(object):
             # 配置热重载
             cmd = "kill -HUP $(cat /var/run/keepalived.pid)"
             shell_cmd(cmd)
-            result = SUCCESS
+            result = HA_MODIFY_RESULT.SUCCESS
         else:
             logger.error("current state is %s not support modify config", self.__ka_state)
+            result = HA_MODIFY_RESULT.INVALID_STATE
 
         return result
 

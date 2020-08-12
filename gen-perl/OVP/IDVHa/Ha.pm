@@ -507,16 +507,20 @@ sub write {
 
 package OVP::IDVHa::Ha_modify_args;
 use base qw(Class::Accessor);
-OVP::IDVHa::Ha_modify_args->mk_accessors( qw( net ) );
+OVP::IDVHa::Ha_modify_args->mk_accessors( qw( net is_master ) );
 
 sub new {
   my $classname = shift;
   my $self      = {};
   my $vals      = shift || {};
   $self->{net} = undef;
+  $self->{is_master} = undef;
   if (UNIVERSAL::isa($vals,'HASH')) {
     if (defined $vals->{net}) {
       $self->{net} = $vals->{net};
+    }
+    if (defined $vals->{is_master}) {
+      $self->{is_master} = $vals->{is_master};
     }
   }
   return bless ($self, $classname);
@@ -548,6 +552,12 @@ sub read {
         $xfer += $input->skip($ftype);
       }
       last; };
+      /^2$/ && do{      if ($ftype == TType::BOOL) {
+        $xfer += $input->readBool(\$self->{is_master});
+      } else {
+        $xfer += $input->skip($ftype);
+      }
+      last; };
         $xfer += $input->skip($ftype);
     }
     $xfer += $input->readFieldEnd();
@@ -563,6 +573,11 @@ sub write {
   if (defined $self->{net}) {
     $xfer += $output->writeFieldBegin('net', TType::STRUCT, 1);
     $xfer += $self->{net}->write($output);
+    $xfer += $output->writeFieldEnd();
+  }
+  if (defined $self->{is_master}) {
+    $xfer += $output->writeFieldBegin('is_master', TType::BOOL, 2);
+    $xfer += $output->writeBool($self->{is_master});
     $xfer += $output->writeFieldEnd();
   }
   $xfer += $output->writeFieldStop();
@@ -2119,6 +2134,7 @@ sub setup{
 sub modify{
   my $self = shift;
   my $net = shift;
+  my $is_master = shift;
 
   die 'implement interface';
 }
@@ -2240,7 +2256,8 @@ sub modify{
   my ($self, $request) = @_;
 
   my $net = ($request->{'net'}) ? $request->{'net'} : undef;
-  return $self->{impl}->modify($net);
+  my $is_master = ($request->{'is_master'}) ? $request->{'is_master'} : undef;
+  return $self->{impl}->modify($net, $is_master);
 }
 
 sub remove{
@@ -2476,18 +2493,21 @@ sub recv_setup{
 sub modify{
   my $self = shift;
   my $net = shift;
+  my $is_master = shift;
 
-    $self->send_modify($net);
+    $self->send_modify($net, $is_master);
   return $self->recv_modify();
 }
 
 sub send_modify{
   my $self = shift;
   my $net = shift;
+  my $is_master = shift;
 
   $self->{output}->writeMessageBegin('modify', TMessageType::CALL, $self->{seqid});
   my $args = new OVP::IDVHa::Ha_modify_args();
   $args->{net} = $net;
+  $args->{is_master} = $is_master;
   $args->write($self->{output});
   $self->{output}->writeMessageEnd();
   $self->{output}->getTransport()->flush();
@@ -3078,7 +3098,7 @@ sub process_modify {
     $args->read($input);
     $input->readMessageEnd();
     my $result = new OVP::IDVHa::Ha_modify_result();
-    $result->{success} = $self->{handler}->modify($args->net);
+    $result->{success} = $self->{handler}->modify($args->net, $args->is_master);
     $output->writeMessageBegin('modify', TMessageType::REPLY, $seqid);
     $result->write($output);
     $output->writeMessageEnd();

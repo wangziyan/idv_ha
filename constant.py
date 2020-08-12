@@ -54,6 +54,12 @@ class HA_SETUP_RESULT(object):
     REMOTE_FS_EXIST = 13      # 远端仍有数据需要清空
     UNKNOWN = 100             # 未知
 
+class HA_MODIFY_RESULT(object):
+    SUCCESS = 0         # 修改成功
+    INVALID_STATE = 1   # keepalived进入了fault状态
+    VRID_USED = 2       # 虚拟路由id已使用
+    UNKNOWN = 3         # 未知
+
 class HA_REMOVE_RESULT(object):
     SUCCESS = 0                 # 移除成功
     UMOUNT_ERROR = 1            # 取消挂载失败

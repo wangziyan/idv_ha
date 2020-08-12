@@ -368,7 +368,7 @@ class DrbdManager(object):
 
             self.start_service()
 
-            # TODO(wzy): 这里是否需要考虑脑裂的情况？完全依赖配置文件会不会有问题？会有问题的
+            # TODO(wzy): 这里是否需要考虑脑裂的情况？完全依赖配置文件会不会有问题？
             if is_master_node():  # master node mount dir
                 self.primary_all_resources()
                 self.mount_all_dir()
