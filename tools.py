@@ -189,6 +189,56 @@ def is_content_supported(disk_name, remote_content):
             # return False
             # return True
 
+def vrrp_is_matched(vrid, vip):
+    """
+    抓包检测虚拟路由id和虚拟ip是否匹配
+    """
+    pkt_list = sniff(filter="vrrp", timeout=2, store=1)
+
+    for pkt in pkt_list:
+        if pkt['VRRP'].vrid == vrid and pkt['VRRP'].addrlist[0] == vip:
+            return True
+
+    return False
+
+def vrid_is_used(vrid):
+    """
+    抓包检测虚拟路由id是否重复使用
+    """
+    pkt_list = sniff(filter="vrrp", timeout=2, store=1)
+
+    if any(pkt['VRRP'].vrid == vrid for pkt in pkt_list):
+        return True
+
+    return False
+
+def kill9_process_of_mount_dir(path):
+    """
+    强制关闭占用挂载目录的进程
+    """
+    cmd = "timeout 3 lsof %s | awk 'NR > 1 {print $2}'" % path
+    ret, output = shell_cmd(cmd, need_out=True)
+
+    if ret != 0:
+        print("%s error", cmd)
+        return
+
+    pid_list = output.split('\n')
+
+    for pid in pid_list:
+        try:
+            cmd = "kill -9 %s" % pid
+            logger.warning("begin kill process pid:%s", pid)
+            ret = shell_cmd(cmd)
+
+            if ret != 0:
+                logger.error("kill process pid:%s failed", pid)
+
+            logger.warning("end kill process pid:%s", pid)
+        except Exception as e:
+            logger.exception(e)
+
+
 def log_enter_exit(func):
     @wraps(func)
     def log_content(*args, **kargs):
@@ -218,26 +268,3 @@ def set_timer(interval, func_name=None):
                 time.sleep(interval)
         return __timer
     return _timer
-
-def vrrp_is_matched(vrid, vip):
-    """
-    抓包检测虚拟路由id和虚拟ip是否匹配
-    """
-    pkt_list = sniff(filter="vrrp", timeout=2, store=1)
-
-    for pkt in pkt_list:
-        if pkt['VRRP'].vrid == vrid and pkt['VRRP'].addrlist[0] == vip:
-            return True
-
-    return False
-
-def vrid_is_used(vrid):
-    """
-    抓包检测虚拟路由id是否重复使用
-    """
-    pkt_list = sniff(filter="vrrp", timeout=2, store=1)
-
-    if any(pkt['VRRP'].vrid == vrid for pkt in pkt_list):
-        return True
-
-    return False

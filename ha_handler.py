@@ -177,17 +177,11 @@ class ProcessHandler(object):
     def switch_master(self):
         logger.info("server recv switch master")
         self.__drbd_task.switch_master()
-        return self.__drbd_mgr.switch_master()
 
-    # TODO(wzy): 切换为备节点
     def switch_backup(self):
         logger.info("server recv switch backup")
-        print("server recv switch backup")
         self.__drbd_task.switch_backup()
-        self.__drbd_mgr.switch_backup()
 
-    # TODO(wzy): 切换为备节点
     def switch_faults(self):
-        logger.info("server recv switch backup")
-        print("server recv switch backup")
+        logger.info("server recv switch faults")
         self.__drbd_task.switch_faults()

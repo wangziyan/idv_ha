@@ -5,6 +5,7 @@
 # @author: wzy
 #
 
+from time import sleep
 from Queue import Queue
 from threading import Thread
 from collections import OrderedDict
@@ -19,8 +20,9 @@ from constant import (SUCCESS,
                       IDV_HA_CONF,
                       NET_DISCONNECT,
                       NET_VRRP_NOT_MATCH,
-                      NET_VRRP_VRID_USED,
-                      HA_MODIFY_RESULT)
+                      HA_MODIFY_RESULT,
+                      DRBD_SWITCH_PRIMARY_FAILED,
+                      DRBD_SWITCH_SECONDARY_FAILED)
 from drbd_const import (DrbdConnState,
                         DrbdDiskState,
                         DrbdRole)
@@ -50,12 +52,14 @@ class DrbdTask(object):
         self.__virtual_ip = None
         self.__interface = None
         self.__drbd_mgr = None
+        self.__role_status = None
+
         self.read_keepalived()
         self.start()
 
     def __run(self):
         """
-        we only exec the latest work
+        多个切换任务到来时，只执行最后一个任务
         """
         while True:
             work = None
@@ -71,18 +75,69 @@ class DrbdTask(object):
             self.__queue.task_done()
 
     def __switch_master(self):
-        logger.info("start switch master")
-        print("enter __switch_master")
-        print("do nothing")
+        logger.info("begin __switch_master")
+
         # drbd设备检测
+        if DrbdDiskState.inconsistent in get_dstate():
+            logger.error("drbd disk state inconsistent")
+            return DRBD_INCONSISTENT
+
+        if self.__drbd_mgr.switch_master():
+            logger.error("drbd mgr switch master failed")
+            self.__switch_failed(DrbdRole.primary)
+            self.__role_status = DrbdRole.error()
+            return DRBD_SWITCH_PRIMARY_FAILED
+
+        if DrbdConnState.stand_alone in get_cstate():
+            cmd = "drbdadm connect all"
+            output = shell_cmd(cmd, need_out=True)[1]
+            logger.info(output)
+
+        self.__role_status = DrbdRole.primary
+        logger.info("end __switch_master")
 
     def __switch_backup(self):
-        print("enter __switch_backup")
-        print("do nothing")
+        logger.info("begin __switch_backup")
+
+        if self.__drbd_mgr.switch_backup():
+            logger.error("drbd mgr switch backup failed")
+            self._switch_failed(DrbdRole.secondary)
+            self.__role_status = DrbdRole.error
+            return DRBD_SWITCH_SECONDARY_FAILED
+
+        if DrbdConnState.stand_alone in get_cstate():
+            cmd = "drbdadm connect all"
+            output = shell_cmd(cmd, need_out=True)[1]
+            logger.info(output)
+
+        self.__role_status = DrbdRole.secondary
+        logger.info("end __switch_backup")
 
     def __switch_fault(self):
-        print("enter __switch_fault")
-        print("do nothing")
+        logger.info("begin __switch_fault")
+        # 错误状态的时候切换成备份服务器
+        try:
+            self.switch_backup()
+        except Exception as e:
+            logger.exception(e)
+            self._switch_failed(KeepalivedState.fault)
+
+    def __switch_failed(self, func):
+        self.__task_run = False
+
+        if func != self.__switch_fault:
+            times = 10
+        else:
+            times = 20
+
+        for _ in range(times):
+            sleep(6)
+
+            if not self.__queue.empty() or self.__role_status != DrbdRole.error:
+                logger.info("end __switch_failed")
+                return
+
+            func()
 
     def __conn_state_check(self):
         if DrbdConnState.stand_alone in get_cstate():
@@ -109,14 +164,56 @@ class DrbdTask(object):
            (drbd_role == DrbdRole.secondary and keepa_state == KeepalivedState.backup):
             self.__role_abnormal_times = 0
         else:
-            self.__role_abnormal_times += 1
             logger.warn("drbd role:%s keepalived state:%s" % (drbd_role, keepa_state))
 
-            if self.__role_abnormal_times > ROLE_ABNORMAL_MAX_TIMES:
-                if keepa_state == KeepalivedState.master:
-                    self.switch_master()
-                elif keepa_state == KeepalivedState.backup:
-                    self.switch_backup()
+            if self.__task_run or not self.__queue.empty():
+                self.__role_abnormal_times = 0
+            else:
+                self.__role_abnormal_times += 1
+
+                if self.__role_abnormal_times > ROLE_ABNORMAL_MAX_TIMES:
+                    if keepa_state == KeepalivedState.master:
+                        self.switch_master()
+                    elif keepa_state == KeepalivedState.backup:
+                        self.switch_backup()
+
+    def __check_ha_cluster_state(self):
+        pass
+
+    def _check_state_of_idv_ha(self):
+        try:
+            thread = Thread(target=self.__check_ha_cluster_state)
+            thread.start()
+        except Exception as e:
+            logger.exception(e.message)
+
+    def __switch_master_failed(self):
+        logger.info("enter __switch_master_failed")
+        self.__switch_failed(self.__switch_master)
+
+    def __switch_backup_failed(self):
+        logger.info("enter __switch_backup_failed")
+        self.__switch_failed(self.__switch_backup)
+
+    def __switch_faults_failed(self):
+        logger.info("enter __switch_faults_failed")
+        self.__switch_failed(self.__switch_fault)
+
+    def _switch_failed(self, status):
+        if not self.__queue.empty():
+            return
+
+        if status == DrbdRole.primary:
+            func = self.__switch_master_failed
+        elif status == DrbdRole.secondary:
+            func = self.__switch_backup_failed
+        elif status == KeepalivedState.fault:
+            func = self.__switch_faults_failed
+        else:
+            return
+
+        logger.info("drbd task queue put method:%s", func.__name__)
+        self.__queue.put(func)
 
     def set_drbd_mgr(self, mgr):
         self.__drbd_mgr = mgr
@@ -228,13 +325,3 @@ class DrbdTask(object):
 
         save_conf(IDV_HA_CONF, new_conf)
         logger.info("save idv_ha conf finished")
-
-    def __check_ha_cluster_state(self):
-        pass
-
-    def _check_state_of_idv_ha(self):
-        try:
-            thread = Thread(target=self.__check_ha_cluster_state)
-            thread.start()
-        except Exception as e:
-            logger.exception(e.message)

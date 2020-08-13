@@ -45,7 +45,21 @@ def get_dstate():
         for state in output:
             dstate.append(state.split("/")[0])
     else:
-        dstate = [output]
+        dstate = [output.split("/")[0]]
+
+    return dstate
+
+def get_remote_dstate():
+    dstate = []
+    ret, output = shell_cmd("drbdadm dstate all", need_out=True)
+
+    if "\n" in output:
+        output = output.split("\n")
+
+        for state in output:
+            dstate.append(state.split("/")[1])
+    else:
+        dstate = [output.split("/")[1]]
 
     return dstate
 

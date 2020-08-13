@@ -21,7 +21,8 @@ from constant import (DRBD_CONF,
                       DRBD_SWITCH_PRIMARY_FAILED,
                       DRBD_SWITCH_SECONDARY_FAILED,
                       DRBD_REMOTE_ROLE_ERROR,
-                      HA_REMOVE_RESULT)
+                      HA_REMOVE_RESULT,
+                      DRBD_UMOUNT_FAILED)
 from drbd_const import (DrbdState,
                         DrbdConnState,
                         DrbdDiskState,
@@ -39,7 +40,8 @@ from tools import (shell_cmd,
                    get_block_size,
                    is_large_disk,
                    get_storage_name,
-                   get_disk_size)
+                   get_disk_size,
+                   kill9_process_of_mount_dir)
 from utility import (is_idv_ha_enabled,
                      get_drbd_conf,
                      get_idv_ha_conf,
@@ -393,17 +395,23 @@ class DrbdManager(object):
         if ret != SUCCESS:
             logger.error("start services failed output: %s" % output)
 
+    def start_other_service(self):
+        cmd = "systemctl start ovp-idv smb"
+        ret, output = shell_cmd(cmd, need_out=True)
+        if ret != SUCCESS:
+            logger.error("start other services failed output: %s" % output)
+
     def stop_drbd_service(self):
         cmd = "systemctl stop drbd keepalived"
         ret, output = shell_cmd(cmd, need_out=True)
         if ret != SUCCESS:
             logger.error("stop drbd keepalvied service failed output: %s" % output)
 
-    def start_other_service(self):
-        cmd = "systemctl start ovp-idv smb"
+    def stop_other_service(self):
+        cmd = "systemctl stop ovp-idv smb"
         ret, output = shell_cmd(cmd, need_out=True)
         if ret != SUCCESS:
-            logger.error("start services failed output: %s" % output)
+            logger.error("stop other services failed output: %s" % output)
 
     def update_drbd_task(self):
         for drbd in self.drbd_lists:
@@ -686,6 +694,33 @@ class DrbdManager(object):
 
             sleep(3)
 
+    def umount_dir(self):
+        cmd = "df -hx tmpfs"
+        _, output = shell_cmd(cmd, need_out=True)
+        dir_list = output.split('\n')
+
+        for path in dir_list:
+            if not re.search("^/dev/drbd", path):
+                continue
+
+            mount_dir = path.split()[5]
+
+            if mount_dir:
+                cmd = "umount -f %s" % mount_dir
+                ret, output = shell_cmd(cmd, need_out=True)
+
+                if ret != SUCCESS:
+                    # 强制关闭占用目录的进程
+                    kill9_process_of_mount_dir(mount_dir)
+                    cmd = "umount -f %s" % mount_dir
+                    ret, output = shell_cmd(cmd, need_out=True)
+
+                    if ret != SUCCESS:
+                        logger.error("umount %s failed", mount_dir)
+                        return False
+
+        return True
+
     def switch_master(self):
         if get_drbd_role() != DrbdRole.primary:
             for i in range(6):
@@ -713,6 +748,12 @@ class DrbdManager(object):
         return SUCCESS
 
     def switch_backup(self):
+        # 停止可能占用路径的服务
+        self.stop_other_service()
+        # 取消挂载
+        if not self.umount_dir():
+            return DRBD_UMOUNT_FAILED
+        # drbd降级为secondary
         if get_drbd_role() == DrbdRole.secondary:
             for _ in range(3):
                 output = shell_cmd("drbdadm secondary all", need_out=True)[1]
