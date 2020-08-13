@@ -81,6 +81,7 @@ class ProcessHandler(object):
 
         if not is_master:
             logger.info("remote server setup result is %d" % result)
+            self.__drbd_task.update_check_split_brain_addr()
             self.__drbd_mgr.start_multi_services()
             self.__drbd_mgr.save_idv_ha_conf(net, drbd, is_master, True)
             self.__drbd_mgr.take_over_mount(drbd)
@@ -103,6 +104,8 @@ class ProcessHandler(object):
             t.setDaemon(True)
             t.start()
 
+        # 更新keepalived脚本检测脑裂的地址
+        self.__drbd_task.update_check_split_brain_addr()
         # 启动ovp-idv、drbd等多个服务
         self.__drbd_mgr.start_multi_services()
         # 保存信息到配置文件

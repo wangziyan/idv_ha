@@ -12,7 +12,6 @@ from collections import OrderedDict
 
 from common import singleton
 from constant import (SUCCESS,
-                      FAILED,
                       DRBD_INCONSISTENT,
                       DRBD_DISKLESS,
                       ROLE_ABNORMAL_MAX_TIMES,
@@ -34,7 +33,8 @@ from keepalived import get_keepalived_state, KeepalivedState
 from tools import (shell_cmd,
                    check_net,
                    vrrp_is_matched,
-                   vrid_is_used)
+                   vrid_is_used,
+                   get_gateway)
 from utility import (get_keepalived_conf,
                      update_conf,
                      get_idv_ha_conf,
@@ -307,6 +307,15 @@ class DrbdTask(object):
             result = HA_MODIFY_RESULT.INVALID_STATE
 
         return result
+
+    def update_check_split_brain_addr(self):
+        logger.info("update keepalived.conf gateway")
+        gateway = get_gateway()
+        replace_str = "ping -c 1 " + gateway
+        re_expr = r"(?:ping\s+-c\s+1\s+)(?:\d{1,3}\.){3}\d{1,3}"
+        begin = r"vrrp_script\s+check_split_brain\s+{"
+        end = r"^}"
+        update_conf(KEEPALIVED_CONF, re_expr, replace_str, begin, end)
 
     def save_ha_conf(self, **cfg):
         ha_conf = get_idv_ha_conf()

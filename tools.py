@@ -80,6 +80,12 @@ def get_local_hostname():
 
     return output
 
+def get_gateway():
+    cmd = "netstat -rn | awk 'NR == 3 {print $2}'"
+    _, output = shell_cmd(cmd, need_out=True)
+
+    return output
+
 def get_vip(interface):
     cmd = "ip addr show %s|grep 'scope global secondary %s'" % (interface, interface)
     ret, output = shell_cmd(cmd, need_out=True)
