@@ -54,7 +54,7 @@ class ProcessHandler(object):
         print("drbd block_dev is %s" % drbd.block_dev)
 
         if is_master:
-            result = Remote.remote_setup(net, drbd, not is_master, is_force)
+            result = Remote.remote_setup(net, drbd, False, is_force)
 
         if result:
             logger.info("setup result %d" % result)
@@ -141,7 +141,7 @@ class ProcessHandler(object):
         if is_master:
             remote_ip = self.__drbd_mgr.get_remote_ip()
             logger.info("remote ip is %s" % remote_ip)
-            remote_result = Remote.remote_remove(remote_ip, not is_master)
+            remote_result = Remote.remote_remove(remote_ip, False)
 
         if is_master and remote_result:
             return remote_result
@@ -169,7 +169,7 @@ class ProcessHandler(object):
         logger.info("server recv net health check")
         return self.__drbd_task.net_health_check()
 
-    # TODO(wzy): drbd的健康状态检测
+    # drbd的健康状态检测
     def drbd_health_check(self):
         logger.info("server recv drbd health check")
         return self.__drbd_task.health_check()
