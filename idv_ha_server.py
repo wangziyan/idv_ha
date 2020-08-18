@@ -6,12 +6,10 @@
 #
 
 import os
-import sys
 import signal
 from threading import Thread
 from time import sleep
 from subprocess import call as sub_call
-sys.path.append('gen-py')
 
 from thrift.transport import TSocket
 from thrift.transport import TTransport

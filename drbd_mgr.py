@@ -6,12 +6,11 @@
 #
 
 import os
-import sys
-sys.path.append('gen-py')
-from collections import OrderedDict
 import re
+
 from time import sleep
 from threading import Thread
+from collections import OrderedDict
 
 from common import singleton
 from constant import (DRBD_CONF,

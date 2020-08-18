@@ -5,13 +5,8 @@
 # @author: wzy
 #
 
-import sys
-sys.path.append('gen-py')
-
 from argparse import ArgumentParser
-
 from idv_ha import Ha
-
 from thrift import Thrift
 from thrift.transport import TSocket
 from thrift.transport import TTransport

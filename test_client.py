@@ -4,8 +4,6 @@
 #
 # @author: wzy
 #
-import sys
-sys.path.append('gen-py')
 
 from threading import Thread
 from time import sleep
