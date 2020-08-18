@@ -76,7 +76,7 @@ class HAServer(object):
             logger.error("stop drbd and keepalived service")
             sub_call("systemctl stop drbd", close_fds=True, shell=True)
             sub_call("systemctl stop keepalived", close_fds=True, shell=True)
-            os._exit(e.code)
+            os._exit(0)
 
 def main():
     idv_ha_server = HAServer()
