@@ -43,12 +43,13 @@ class HAServer(object):
         self.port = port
 
     def _handle_signal(self, signum, frame):
-        print("exit by ctrl c")
+        logger.info("process exit manually")
         os._exit(0)
 
     def start(self):
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
+        signal.signal(signal.SIGTSTP, self._handle_signal)
 
         handler = ProcessHandler()
         processor = Ha.Processor(handler)
