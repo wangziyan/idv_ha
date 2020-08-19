@@ -34,22 +34,23 @@ cd %{_builddir}/%{name}
 mkdir -p %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_datarootdir}/ovp-idv-ha/
 mkdir -p %{buildroot}%{_sysconfdir}/keepalived/
-mkdir -p %{buildroot}%{_sysconfdir}/ovp/idv_ha/
+mkdir -p %{buildroot}%{_sysconfdir}/ovp-idv-ha/
 
 cp -rf idv_ha %{buildroot}%{_datarootdir}/ovp-idv-ha/
-cp *.py %{buildroot}%{_datarootdir}/ovp-idv-ha/
+cp -f *.py %{buildroot}%{_datarootdir}/ovp-idv-ha/
 cp -f idv_ha_client %{buildroot}%{_datarootdir}/ovp-idv-ha/
 cp -f idv_ha_server %{buildroot}%{_datarootdir}/ovp-idv-ha/
 cp -f ovp-idv-ha.service %{buildroot}%{_unitdir}
-cp -f idv_ha.conf %{buildroot}%{_datarootdir}/ovp-idv-ha/idv_ha.conf
+cp -f idv_ha.conf %{buildroot}%{_sysconfdir}/ovp-idv-ha/idv_ha.conf
 cp -f keepalived.conf %{buildroot}%{_sysconfdir}/keepalived/keepalived.conf
 
 %files
 %defattr (-,root,root,0644)
 
+%config %{_sysconfdir}/ovp-idv-ha/idv_ha.conf
+%config %{_sysconfdir}/keepalived/keepalived.conf
+
 %{_unitdir}/ovp-idv-ha.service
-%{_sysconfdir}/keepalived/keepalived.conf
-%{_sysconfdir}/ovp/idv_ha/idv_ha.conf
 %{_datadir}/ovp-idv-ha/*
 
 %attr(755, root, root) %{_datadir}/ovp-idv-ha/idv_ha_server

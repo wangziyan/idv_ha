@@ -11,7 +11,7 @@ SERVER_PORT = 9011
 THRIFT_TIMEOUT = 30000
 
 # IDV HA相关配置文件
-IDV_HA_CONF_PATH = "/etc/ovp/idv_ha/"
+IDV_HA_CONF_PATH = "/etc/ovp-idv-ha/"
 IDV_HA_CONF = IDV_HA_CONF_PATH + "idv_ha.conf"
 
 # DRBD配置文件
